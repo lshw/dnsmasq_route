@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+void log_scan();
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 void add_key(uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来， 
@@ -36,13 +36,9 @@ bool in_key(uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4的记�
       return true;
   return false;
 }
+  char * buf0, * remote_ip, * dns_server;
 void main(int argc, char * argv[])
 {
-  char buf[300],skip[31],proc[31],sip[100],domain[100],to[100],dip[100],cmd[2048];
-  uint8_t skip_i;
-  uint8_t hour;
-  char * buf0, * remote_ip, * dns_server;
-  uint32_t pid;
   if(argc < 2) {
     printf("logread -f |%s dns_server [remote_route]\r\n",argv[0]);
     return;
@@ -54,6 +50,15 @@ void main(int argc, char * argv[])
   if(argc >= 3)
     remote_ip=argv[2];
   memset(pids,0,sizeof(pids));
+  while(1){
+    log_scan();
+  }
+}
+void log_scan() {
+  char buf[300],skip[31],proc[31],sip[100],domain[100],to[100],dip[100],cmd[2048];
+  uint8_t skip_i;
+  uint8_t hour;
+  uint32_t pid;
   while(!feof(stdin)) {
     scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
 	skip,skip,
