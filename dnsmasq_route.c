@@ -5,9 +5,11 @@
 #include <string.h>
 #include <time.h>
 void log_scan();
+bool have_route(const char * dip, const uint8_t hour_clean);
+char hextohbin(const uint8_t dat); //把半个hex转换成bin
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
-void add_key(uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来， 
+void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
   uint32_t dat;
   for(uint8_t i = 0; i < PID_SIZE; i++) {
     if(pids[i] == 0){
@@ -30,7 +32,7 @@ void add_key(uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
     pids[PID_SIZE - 1] = pid;
 }
 
-bool in_key(uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4的记录中，
+bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4的记录中，
   for(uint8_t i = 0; i < PID_SIZE; i++)
     if(pids[i] == pid)
       return true;
