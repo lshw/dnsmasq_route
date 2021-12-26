@@ -100,9 +100,12 @@ void log_scan() {
 
 void route(const char * dip, const int hour) {
   FILE *dfp;
-  char buf[2048], desc[10];
+  char buf[2048], dest[10];
+  uint8_t ip[20];
   int metric, metric_clean;
   metric_clean=65000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
+  snprintf((char *)ip,sizeof(ip),"%02X%02X%02X%02X\r\n",ip[3],ip[2],ip[1],ip[0]);
   dfp = fopen("/proc/net/route", "r");
   if(!dfp) return;
   fgets(buf, sizeof(buf), dfp);//skip head
@@ -112,24 +115,17 @@ void route(const char * dip, const int hour) {
        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
        eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
        */
-    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, desc, skip, skip, skip, skip, &metric);
-    fgets(skip,sizeof(skip), dfp);
-    snprintf(buf,sizeof(buf), "%d.%d.%d.%d",
-	(hextohbin(desc[0]) << 8) | hextohbin(desc[1]),
-	(hextohbin(desc[2]) << 8) | hextohbin(desc[3]),
-	(hextohbin(desc[4]) << 8) | hextohbin(desc[5]),
-	(hextohbin(desc[6]) << 8) | hextohbin(desc[7]));
+    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, dest, skip, skip, skip, skip, &metric);
+    fgets(skip, sizeof(skip), dfp);
     if(metric == metric_clean) { //需要清理的路由
-      snprintf(buf,sizeof(buf),"ip ro del %s metric %d", dip, metric);
+      snprintf(buf,sizeof(buf), "ip ro del %s metric %d", dip, metric);
       system(buf);
       continue;
     }
-    if(strcmp(buf,dip) == 0) return; //路由表中存在此路由
+    if(strncmp((char *)ip, dest,strlen(dest)) == 0) {
+      return; //路由表中存在此路由
+    }
   }
   snprintf(buf,sizeof(buf),"ip ro add %s metric %d via %s",dip,hour + 65000,remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
   system(buf);
-}
-char hextohbin(uint8_t dat){
-  const char ret[]={0,1,2,3,4,5,6,7,8,9,0xa,0xb,0xc,0xd,0xe,0xf};
-  return ret[dat & 0xf];
 }
