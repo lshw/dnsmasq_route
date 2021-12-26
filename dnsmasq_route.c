@@ -102,9 +102,13 @@ void route(const char * dip, const int hour) {
   FILE *dfp;
   char buf[2048], dest[10];
   uint8_t ip[20];
+  char dip0[30];
   int metric, metric_clean;
   metric_clean=65000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
+  snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+  if(strcmp(dip0, dip) != 0)
+    return;
   snprintf((char *)ip,sizeof(ip),"%02X%02X%02X%02X\r\n",ip[3],ip[2],ip[1],ip[0]);
   dfp = fopen("/proc/net/route", "r");
   if(!dfp) return;
@@ -114,7 +118,7 @@ void route(const char * dip, const int hour) {
     /*
        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
        eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
-       */
+    */
     fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, dest, skip, skip, skip, skip, &metric);
     fgets(skip, sizeof(skip), dfp);
     if(metric == metric_clean) { //需要清理的路由
