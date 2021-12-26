@@ -5,7 +5,7 @@
 #include <string.h>
 #include <time.h>
 void log_scan();
-bool have_route(const char * dip, const uint8_t hour_clean);
+void route(const char * dip, const uint8_t hour);
 char hextohbin(const uint8_t dat); //把半个hex转换成bin
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
@@ -38,7 +38,7 @@ bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4�
       return true;
   return false;
 }
-  char * buf0, * remote_ip, * dns_server;
+char * buf0, * remote_ip, * dns_server, skip[31];
 void main(int argc, char * argv[])
 {
   if(argc < 2) {
@@ -57,7 +57,7 @@ void main(int argc, char * argv[])
   }
 }
 void log_scan() {
-  char buf[300],skip[31],proc[31],sip[100],domain[100],to[100],dip[100],cmd[2048];
+  char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
   uint8_t skip_i;
   uint8_t hour;
   uint32_t pid;
@@ -78,24 +78,57 @@ void log_scan() {
 	&pid,sip, proc , &domain,&to);
     fgetc(stdin);
     fgets(dip,sizeof(dip),stdin);
-    buf0=strstr(dip,"\n");
+    buf0 = strstr(dip,"\n");
     if(buf0)
-      buf0[0]=0;
+      buf0[0] = 0;
     buf0=strstr(dip,"\r");
     if(buf0)
       buf0[0]=0;
     if(strcmp(proc, "forwarded") == 0 && strncmp(dip,dns_server,strlen(dns_server)) == 0) { //找出转发到8.8.4.4的请求
       add_key(pid); //保存请求id
     }else{
-      if(strcmp(to,"is")==0) {
+      if(strcmp(to, "is") == 0) {
 	if(in_key(pid)        //如果是记录的请求id的回应， 就处理
-	    && !index(dip,':')){   //去掉ipv6回应
-	  snprintf(cmd,sizeof(cmd),"ip ro del %s via %s",dip,remote_ip,dip);
-	  printf("system(%s)=%d\r\n",cmd,system(cmd));
-	  snprintf(cmd,sizeof(cmd),"ip ro add %s metric %d via %s",dip,hour + 65000,remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
-	  printf("system(%s)=%d\r\n",cmd,system(cmd));
+	    && !index(dip, ':')){   //去掉ipv6回应
+	  route(dip, hour);
 	}
       }
     }
   }
+}
+
+void route(const char * dip, const uint8_t hour) {
+  FILE *dfp;
+  char buf[2048], desc[10];
+  uint16_t metric, metric_clean;
+  metric_clean=65000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  dfp = fopen("/proc/net/route", "r");
+  if(!dfp) return;
+  fgets(buf, sizeof(buf), dfp);//skip head
+  while(!feof(dfp)) {
+    fgets(buf, sizeof(buf), dfp);
+    /*
+       Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
+       eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
+       */
+    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, desc, skip, skip, skip, skip, metric);
+    fgets(skip,sizeof(skip), dfp);
+    snprintf(buf,sizeof(buf), "%d.%d.%d.%d",
+	(hextohbin(desc[0]) << 8) | hextohbin(desc[1]),
+	(hextohbin(desc[2]) << 8) | hextohbin(desc[3]),
+	(hextohbin(desc[4]) << 8) | hextohbin(desc[5]),
+	(hextohbin(desc[6]) << 8) | hextohbin(desc[7]));
+    if(metric == metric_clean) { //需要清理的路由
+      snprintf(buf,sizeof(buf),"ip ro del %s metric %d", dip, metric);
+      system(buf);
+      continue;
+    }
+    if(strcmp(buf,dip) == 0) return; //路由表中存在此路由
+  }
+  snprintf(buf,sizeof(buf),"ip ro add %s metric %d via %s",dip,hour + 65000,remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
+  system(buf);
+}
+char hextohbin(uint8_t dat){
+  const char ret[]={0,1,2,3,4,5,6,7,8,9,0xa,0xb,0xc,0xd,0xe,0xf};
+  return ret[dat & 0xf];
 }
