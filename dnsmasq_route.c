@@ -5,7 +5,7 @@
 #include <string.h>
 #include <time.h>
 void log_scan();
-void route(const char * dip, const uint8_t hour);
+void route(const char * dip, const int hour);
 char hextohbin(const uint8_t dat); //把半个hex转换成bin
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
@@ -39,11 +39,11 @@ bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4�
   return false;
 }
 char * buf0, * remote_ip, * dns_server, skip[31];
-void main(int argc, char * argv[])
+int main(int argc, char * argv[])
 {
   if(argc < 2) {
     printf("logread -f |%s dns_server [remote_route]\r\n",argv[0]);
-    return;
+    return -1;
   }
   if(argc >= 2) {
     remote_ip=argv[1];
@@ -55,11 +55,12 @@ void main(int argc, char * argv[])
   while(1){
     log_scan();
   }
+  return 0;
 }
 void log_scan() {
   char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
-  uint8_t skip_i;
-  uint8_t hour;
+  int skip_i;
+  int hour;
   uint32_t pid;
   while(!feof(stdin)) {
     scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
@@ -75,7 +76,7 @@ void log_scan() {
        dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
        dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
     scanf("%d %99s %30s %99s %99s",
-	&pid,sip, proc , &domain,&to);
+	&pid, sip, proc, domain, to);
     fgetc(stdin);
     fgets(dip,sizeof(dip),stdin);
     buf0 = strstr(dip,"\n");
@@ -97,10 +98,10 @@ void log_scan() {
   }
 }
 
-void route(const char * dip, const uint8_t hour) {
+void route(const char * dip, const int hour) {
   FILE *dfp;
   char buf[2048], desc[10];
-  uint16_t metric, metric_clean;
+  int metric, metric_clean;
   metric_clean=65000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
   dfp = fopen("/proc/net/route", "r");
   if(!dfp) return;
@@ -111,7 +112,7 @@ void route(const char * dip, const uint8_t hour) {
        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
        eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
        */
-    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, desc, skip, skip, skip, skip, metric);
+    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, desc, skip, skip, skip, skip, &metric);
     fgets(skip,sizeof(skip), dfp);
     snprintf(buf,sizeof(buf), "%d.%d.%d.%d",
 	(hextohbin(desc[0]) << 8) | hextohbin(desc[1]),
