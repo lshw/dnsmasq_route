@@ -9,7 +9,8 @@
 #define GIT_VER "test"
 #endif
 void log_scan();
-void route(const char * dip, const int hour);
+void ip_route(const char * dip, const int hour);
+void ip_rule(const char * dip, const int hour);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 bool v = false;
@@ -42,12 +43,15 @@ bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4�
       return true;
   return false;
 }
+void update_rule_list() {
+  system("ip rule list |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list"); //初始化已经清单
+}
 extern char * optarg;
-char * buf0, * remote_ip, * dns_server, skip[31];
+char * buf0, * remote_ip, * dns_server, skip[31], *table;
 int main(int argc, char * argv[])
 {
   int opt = 0;
-  while((opt = getopt(argc, argv, "vVd:r:")) != -1) {
+  while((opt = getopt(argc, argv, "vVd:r:t:")) != -1) {
     switch(opt) {
       case 'v':
         v = true;
@@ -61,6 +65,9 @@ int main(int argc, char * argv[])
       case 'r':
         remote_ip = optarg;
         break;
+      case 't':
+        table = optarg;
+        break;
     }
   }
   if(remote_ip == NULL && dns_server == NULL) {
@@ -71,6 +78,9 @@ int main(int argc, char * argv[])
     remote_ip = dns_server;
   if(remote_ip != NULL && dns_server == NULL)
     dns_server = remote_ip;
+
+  if(table != NULL)  //rule方式
+    update_rule_list();
 
   memset(pids,0,sizeof(pids));
   while(1){
@@ -113,14 +123,18 @@ void log_scan() {
       if(strcmp(to, "is") == 0) {
 	if(in_key(pid)        //如果是记录的请求id的回应， 就处理
 	    && !index(dip, ':')){   //去掉ipv6回应
-	  route(dip, hour);
+          if(table == NULL) { //路由名为空， 就是修改主路由表的路由
+	  ip_route(dip, hour);
+          }else {
+	  ip_rule(dip, hour); //路由名称不为空，就是修改rule路由规则
+          }
 	}
       }
     }
   }
 }
 
-void route(const char * dip, const int hour) {
+void ip_route(const char * dip, const int hour) {
   FILE *dfp;
   char buf[2048], dest[10];
   uint8_t ip[20];
@@ -156,4 +170,59 @@ void route(const char * dip, const int hour) {
   }
   snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
   system(buf);
+}
+
+
+void ip_rule(const char * dip, const int hour) {
+  FILE *dfp;
+  char buf[2048], dest[10];
+  uint8_t ip[20];
+  char dip0[30];
+  bool update = false;
+  int metric, metric_clean;
+  metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
+  snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+  if(strcmp(dip0, dip) != 0)
+    return;
+  dfp = fopen("/tmp/dnsmasq_rule.list", "r");
+  if(!dfp) return;
+  while(!feof(dfp)) {
+    fgets(buf, sizeof(buf), dfp);
+    /*
+29010:	from all to 120.121.121.140 lookup 107
+29010:	from all to 120.121.121.141 lookup 107
+     */
+    fscanf(dfp,"%d %10s %10s %10s %30s", &metric, skip, skip, skip, dest);
+    fgets(skip, sizeof(skip), dfp);
+    if(metric == metric_clean) { //需要清理的路由
+      snprintf(buf,sizeof(buf), "ip rule del  to %s lookup %s pref %d", dip, table, metric);
+      if(v)
+	printf("%s\r\n",buf);
+      system(buf);
+      update = true;
+      continue;
+    }
+    if(strncmp((char *)dip, dest,strlen(dest)) == 0) {
+      if(update) {
+	update_rule_list();
+      }
+      return; //路由表中存在此路由
+    }
+  }
+  fclose(dfp);
+  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, metric_clean); //用metric 来区分每个小时添加的路由，方便定期清理
+  if(v)
+    printf("%s\r\n",buf);
+  system(buf);
+  if(update)
+    update_rule_list();
+  else {
+    dfp=fopen("/tmp/dnsmasq_rule.list","a");
+    if(dfp) {
+      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s", 29000 + hour, dip, table);
+      fputs(buf, dfp);
+      fclose(dfp);
+    }
+  }
 }
