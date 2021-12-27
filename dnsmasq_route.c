@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <getopt.h>
 void log_scan();
 void route(const char * dip, const int hour);
-char hextohbin(const uint8_t dat); //把半个hex转换成bin
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
+bool v = false;
 void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
   uint32_t dat;
   for(uint8_t i = 0; i < PID_SIZE; i++) {
@@ -38,25 +39,42 @@ bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4�
       return true;
   return false;
 }
+extern char * optarg;
 char * buf0, * remote_ip, * dns_server, skip[31];
 int main(int argc, char * argv[])
 {
-  if(argc < 2) {
-    printf("logread -f |%s dns_server [remote_route]\r\n",argv[0]);
-    return -1;
+  int opt = 0;
+  while((opt = getopt(argc, argv, "vVd:r:")) != -1) {
+    switch(opt) {
+      case 'v':
+        v = true;
+        break;
+      case 'V':
+        break;
+      case 'd':
+        dns_server = optarg;
+        break;
+      case 'r':
+        remote_ip = optarg;
+        break;
+    }
   }
-  if(argc >= 2) {
-    remote_ip=argv[1];
-    dns_server=argv[1];
+  if(remote_ip == NULL && dns_server == NULL) {
+    printf("logread -f |%s -d dns_server -r remote_ip\r\n",argv[0]);
+    return 1;
   }
-  if(argc >= 3)
-    remote_ip=argv[2];
+  if(remote_ip == NULL && dns_server != NULL)
+    remote_ip = dns_server;
+  if(remote_ip != NULL && dns_server == NULL)
+    dns_server = remote_ip;
+
   memset(pids,0,sizeof(pids));
   while(1){
     log_scan();
   }
   return 0;
 }
+
 void log_scan() {
   char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
   int skip_i;
@@ -104,7 +122,7 @@ void route(const char * dip, const int hour) {
   uint8_t ip[20];
   char dip0[30];
   int metric, metric_clean;
-  metric_clean=65000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
   snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   if(strcmp(dip0, dip) != 0)
@@ -123,6 +141,8 @@ void route(const char * dip, const int hour) {
     fgets(skip, sizeof(skip), dfp);
     if(metric == metric_clean) { //需要清理的路由
       snprintf(buf,sizeof(buf), "ip ro del %s metric %d", dip, metric);
+      if(v)
+        printf("%s\r\n",buf);
       system(buf);
       continue;
     }
@@ -130,6 +150,6 @@ void route(const char * dip, const int hour) {
       return; //路由表中存在此路由
     }
   }
-  snprintf(buf,sizeof(buf),"ip ro add %s metric %d via %s",dip,hour + 65000,remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
   system(buf);
 }
