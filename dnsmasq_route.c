@@ -220,7 +220,7 @@ void ip_rule(const char * dip, const int hour) {
   else {
     dfp=fopen("/tmp/dnsmasq_rule.list","a");
     if(dfp) {
-      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s", 29000 + hour, dip, table);
+      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + hour, dip, table);
       fputs(buf, dfp);
       fclose(dfp);
     }
