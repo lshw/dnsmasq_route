@@ -5,6 +5,9 @@
 #include <string.h>
 #include <time.h>
 #include <getopt.h>
+#ifndef GIT_VER
+#define GIT_VER "test"
+#endif
 void log_scan();
 void route(const char * dip, const int hour);
 #define PID_SIZE 20
@@ -50,6 +53,7 @@ int main(int argc, char * argv[])
         v = true;
         break;
       case 'V':
+        printf("Version:%s\r\n",GIT_VER);
         break;
       case 'd':
         dns_server = optarg;
