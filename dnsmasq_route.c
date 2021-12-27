@@ -169,6 +169,8 @@ void ip_route(const char * dip, const int hour) {
     }
   }
   snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
+  if(v)
+    printf("%s\r\n",buf);
   system(buf);
 }
 
@@ -211,7 +213,7 @@ void ip_rule(const char * dip, const int hour) {
     }
   }
   fclose(dfp);
-  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, metric_clean); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
