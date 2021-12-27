@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.0.0.2
+PKG_VERSION:=0.20211227
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
-PKG_SOURCE_VERSION:=3432025
+PKG_SOURCE_VERSION:=a1e5508
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 
@@ -44,8 +44,8 @@ MAKE_FLAGS += cross
 define Build/Prepare
 	$(PKG_UNPACK)
 	sed -i 's/cc_cross=.*/cc_cross=$(TARGET_CXX)/g' $(PKG_BUILD_DIR)/Makefile
-	sed -i '/\gitversion/d' $(PKG_BUILD_DIR)/Makefile
-	echo 'const char * const gitversion = "$(PKG_VERSION)";' > $(PKG_BUILD_DIR)/git_version.h
+	sed -i 's/^UPDATE=.*/UPDATE=$(PKG_VERSION)/g' $(PKG_BUILD_DIR)/Makefile
+	sed -i 's/^GIT_VER=.*/GIT_VER=$(PKG_SOURCE_VERSION)/g' $(PKG_BUILD_DIR)/Makefile
 	$(Build/Patch)
 endef
 
