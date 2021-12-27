@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.0.0.1
+PKG_VERSION:=0.0.0.2
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
-PKG_SOURCE_VERSION:=6e3487d9
+PKG_SOURCE_VERSION:=3432025
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 
@@ -52,6 +52,7 @@ endef
 define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route_cross $(1)/usr/bin/dnsmasq_route
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.sh $(1)/usr/bin/dnsmasq_route.sh
 endef
 
 $(eval $(call BuildPackage,dnsmasq_route))
