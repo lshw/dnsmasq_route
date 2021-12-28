@@ -9,7 +9,6 @@
 #define GIT_VER "test"
 #endif
 void log_scan();
-void ip_route(const char * dip);
 void ip_rule(const char * dip);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
@@ -51,8 +50,13 @@ char * buf0, * remote_ip, * dns_server, skip[31], *table;
 int main(int argc, char * argv[])
 {
   int opt = 0;
-  while((opt = getopt(argc, argv, "vVd:r:t:")) != -1) {
+  bool h = false;
+  while((opt = getopt(argc, argv, "hHvVd:r:t:")) != -1) {
     switch(opt) {
+      case 'h':
+      case 'H': //帮助信息
+        h = true;
+        break;
       case 'v':
         v = true;
         break;
@@ -70,8 +74,8 @@ int main(int argc, char * argv[])
         break;
     }
   }
-  if(remote_ip == NULL && dns_server == NULL) {
-    printf("logread -f |%s -d dns_server -r remote_ip\r\n",argv[0]);
+  if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
+    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -r remote_ip -t 107\r\n\r\n -d remote dns server\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   if(remote_ip == NULL && dns_server != NULL)
@@ -127,58 +131,11 @@ void log_scan() {
       if(strcmp(to, "is") == 0) {
 	if(in_key(pid)        //如果是记录的请求id的回应， 就处理
 	    && !index(dip, ':')){   //去掉ipv6回应
-          if(table == NULL) { //路由名为空， 就是修改主路由表的路由
-	  ip_route(dip);
-          }else {
 	  ip_rule(dip); //路由名称不为空，就是修改rule路由规则
-          }
 	}
       }
     }
   }
-}
-
-void ip_route(const char * dip) {
-  FILE *dfp;
-  char buf[2048], dest[10];
-  uint8_t ip[20];
-  char dip0[30];
-  int metric, metric_clean;
-  time_t time0;
-  struct tm tm;
-  time(&time0);
-  localtime_r(&time0, &tm);
-  metric_clean=29000 + ((tm.tm_hour + 1) % 24); //根据metric 清理过期路由 下一小时
-  sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
-  snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-  if(strcmp(dip0, dip) != 0) //ip格式不对
-    return;
-  snprintf((char *)ip,sizeof(ip),"%02X%02X%02X%02X\r\n",ip[3],ip[2],ip[1],ip[0]);
-  dfp = fopen("/proc/net/route", "r");
-  if(!dfp) return;
-  fgets(buf, sizeof(buf), dfp);//skip head
-  while(!feof(dfp)) {
-    /*
-       Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
-       eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
-    */
-    fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, dest, skip, skip, skip, skip, &metric);
-    fgets(skip, sizeof(skip), dfp);
-    if(metric == metric_clean) { //需要清理的路由
-      snprintf(buf,sizeof(buf), "ip ro del %s/32", dest);
-      if(v)
-        printf("%s\r\n",buf);
-      system(buf);
-      continue;
-    }
-    if(strncmp((char *)ip, dest,strlen(dest)) == 0) {
-      return; //路由表中存在此路由
-    }
-  }
-  snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, tm.tm_hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
-  if(v)
-    printf("%s\r\n",buf);
-  system(buf);
 }
 
 void ip_rule(const char * dip) {
