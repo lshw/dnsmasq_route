@@ -1,7 +1,7 @@
 #!/bin/sh
 
-#主路由方式
-#logread -f -S 128000000 |dnsmasq_route -d 8.8.4.4 -r 10.7.0.1 -v -V
-
 #多路由方式
-logread -f -S 128000000 |dnsmasq_route -d 8.8.4.4 -r 10.7.0.1 -v -V -t 107
+if ! [ "`ip route list default table 107 |grep 10.7.0.1`" ] ; then
+ ip route add default table 107
+fi
+logread -f -S 128000 |dnsmasq_route -d 8.8.4.4 -r 10.7.0.1 -v -V -t 107
