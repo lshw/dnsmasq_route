@@ -150,7 +150,6 @@ void ip_route(const char * dip, const int hour) {
   if(!dfp) return;
   fgets(buf, sizeof(buf), dfp);//skip head
   while(!feof(dfp)) {
-    fgets(buf, sizeof(buf), dfp);
     /*
        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
        eth0    00000000        01D5D2C0        0003    0       0       0       00000000        0       0       0
@@ -190,12 +189,13 @@ void ip_rule(const char * dip, const int hour) {
   dfp = fopen("/tmp/dnsmasq_rule.list", "r");
   if(!dfp) return;
   while(!feof(dfp)) {
-    fgets(buf, sizeof(buf), dfp);
     /*
 29010:	from all to 120.121.121.140 lookup 107
 29010:	from all to 120.121.121.141 lookup 107
      */
-    fscanf(dfp,"%d %10s %10s %10s %30s", &metric, skip, skip, skip, dest);
+    metric = 0;
+    int rc = fscanf(dfp,"%d %10s %10s %10s %30s", &metric, skip, skip, skip, dest);
+    if(rc <= 0) continue;
     fgets(skip, sizeof(skip), dfp);
     if(metric == metric_clean) { //需要清理的路由
       snprintf(buf,sizeof(buf), "ip rule del  to %s lookup %s pref %d", dip, table, metric);
