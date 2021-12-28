@@ -9,8 +9,8 @@
 #define GIT_VER "test"
 #endif
 void log_scan();
-void ip_route(const char * dip, const int hour);
-void ip_rule(const char * dip, const int hour);
+void ip_route(const char * dip);
+void ip_rule(const char * dip);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 bool v = false;
@@ -92,12 +92,11 @@ int main(int argc, char * argv[])
 void log_scan() {
   char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
   int skip_i;
-  int hour;
   uint32_t pid;
   while(!feof(stdin)) {
     scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
 	skip,skip,
-	&skip_i,&hour,&skip_i,&skip_i, &skip_i, skip, proc);
+	&skip_i,&skip_i,&skip_i,&skip_i, &skip_i, skip, proc);
     if(strncmp(proc,"dnsmasq[",sizeof("dnsmasq[")-1) != 0) continue;
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
@@ -124,9 +123,9 @@ void log_scan() {
 	if(in_key(pid)        //如果是记录的请求id的回应， 就处理
 	    && !index(dip, ':')){   //去掉ipv6回应
           if(table == NULL) { //路由名为空， 就是修改主路由表的路由
-	  ip_route(dip, hour);
+	  ip_route(dip);
           }else {
-	  ip_rule(dip, hour); //路由名称不为空，就是修改rule路由规则
+	  ip_rule(dip); //路由名称不为空，就是修改rule路由规则
           }
 	}
       }
@@ -134,16 +133,17 @@ void log_scan() {
   }
 }
 
-void ip_route(const char * dip, const int hour) {
+void ip_route(const char * dip) {
   FILE *dfp;
   char buf[2048], dest[10];
   uint8_t ip[20];
   char dip0[30];
   int metric, metric_clean;
+  uint8_t hour = time(NULL) % (3600 * 24) / 3600;
   metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
   snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-  if(strcmp(dip0, dip) != 0)
+  if(strcmp(dip0, dip) != 0) //ip格式不对
     return;
   snprintf((char *)ip,sizeof(ip),"%02X%02X%02X%02X\r\n",ip[3],ip[2],ip[1],ip[0]);
   dfp = fopen("/proc/net/route", "r");
@@ -174,17 +174,19 @@ void ip_route(const char * dip, const int hour) {
 }
 
 
-void ip_rule(const char * dip, const int hour) {
+void ip_rule(const char * dip) {
   FILE *dfp;
   char buf[2048], dest[10];
   uint8_t ip[20];
   char dip0[30];
   bool update = false;
   int metric, metric_clean;
+  uint8_t hour = time(NULL) % (3600 * 24) / 3600;
+
   metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
   snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-  if(strcmp(dip0, dip) != 0)
+  if(strcmp(dip0, dip) != 0) //ip格式不对，退出
     return;
   dfp = fopen("/tmp/dnsmasq_rule.list", "r");
   if(!dfp) return;
