@@ -93,11 +93,16 @@ void log_scan() {
   char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
   int skip_i;
   uint32_t pid;
-  while(!feof(stdin)) {
-    scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
+  int rc;
+  while(1) {
+    rc = scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
 	skip,skip,
 	&skip_i,&skip_i,&skip_i,&skip_i, &skip_i, skip, proc);
-    if(strncmp(proc,"dnsmasq[",sizeof("dnsmasq[")-1) != 0) continue;
+    if(rc <= 0) continue;
+    if(strncmp(proc,"dnsmasq[",sizeof("dnsmasq[")-1) != 0) {
+      fgets(buf,sizeof(buf),stdin); //清理剩余部分
+      continue;
+     }
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
        dnsmasq[12670]:  177526 192.168.12.13/36330 forwarded www.google.com to 8.8.4.4
