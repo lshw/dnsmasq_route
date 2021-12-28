@@ -176,13 +176,12 @@ void ip_route(const char * dip) {
   system(buf);
 }
 
-
 void ip_rule(const char * dip) {
   FILE *dfp;
   char buf[2048], dest[10];
   uint8_t ip[20];
   char dip0[30];
-  bool update = false;
+  bool del = false, is_exists = false;
   int metric, metric_clean;
   time_t time0;
   struct tm tm;
@@ -203,31 +202,29 @@ void ip_rule(const char * dip) {
      */
     metric = 0;
     int rc = fscanf(dfp,"%d %10s %10s %10s %30s", &metric, skip, skip, skip, dest);
-    if(rc <= 0) continue;
     fgets(skip, sizeof(skip), dfp);
+    if(rc <= 0) continue;
+    if(v)
+      printf("metric:%d,metric_clean:%d,dest:%s\r\n", metric, metric_clean, dest);
     if(metric == metric_clean) { //需要清理的路由
       snprintf(buf,sizeof(buf), "ip rule del  to %s lookup %s pref %d", dip, table, metric);
       if(v)
 	printf("%s\r\n",buf);
       system(buf);
-      update = true;
+      del = true;
       continue;
     }
-    if(strncmp((char *)dip, dest,strlen(dest)) == 0) {
-      if(update) {
-	update_rule_list();
-      }
-      return; //路由表中存在此路由
+    if(strncmp((char *)dip, dest,strlen(dest)) == 0){
+      is_exist = true;
+      continue; //路由表中存在此路由
     }
   }
   fclose(dfp);
-  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
-  if(v)
-    printf("%s\r\n",buf);
-  system(buf);
-  if(update)
-    update_rule_list();
-  else {
+  if(!is_exists) {
+    snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
+    if(v)
+      printf("%s\r\n",buf);
+    system(buf);
     dfp=fopen("/tmp/dnsmasq_rule.list","a");
     if(dfp) {
       snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + tm.tm_hour, dip, table);
@@ -235,4 +232,6 @@ void ip_rule(const char * dip) {
       fclose(dfp);
     }
   }
+  if(del)
+    update_rule_list();
 }
