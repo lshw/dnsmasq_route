@@ -215,7 +215,7 @@ void ip_rule(const char * dip) {
       continue;
     }
     if(strncmp((char *)dip, dest,strlen(dest)) == 0){
-      is_exist = true;
+      is_exists = true;
       continue; //路由表中存在此路由
     }
   }
@@ -225,11 +225,13 @@ void ip_rule(const char * dip) {
     if(v)
       printf("%s\r\n",buf);
     system(buf);
-    dfp=fopen("/tmp/dnsmasq_rule.list","a");
-    if(dfp) {
-      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + tm.tm_hour, dip, table);
-      fputs(buf, dfp);
-      fclose(dfp);
+    if(!del) {
+      dfp=fopen("/tmp/dnsmasq_rule.list","a");
+      if(dfp) {
+	snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + tm.tm_hour, dip, table);
+	fputs(buf, dfp);
+	fclose(dfp);
+      }
     }
   }
   if(del)
