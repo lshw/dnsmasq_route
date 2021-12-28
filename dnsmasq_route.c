@@ -160,7 +160,7 @@ void ip_route(const char * dip) {
     fscanf(dfp,"%30s %10s %10s %30s %30s %30s %d", skip, dest, skip, skip, skip, skip, &metric);
     fgets(skip, sizeof(skip), dfp);
     if(metric == metric_clean) { //需要清理的路由
-      snprintf(buf,sizeof(buf), "ip ro del %s metric %d", dip, metric);
+      snprintf(buf,sizeof(buf), "ip ro del %s/32", dip);
       if(v)
         printf("%s\r\n",buf);
       system(buf);
@@ -207,7 +207,7 @@ void ip_rule(const char * dip) {
     if(v)
       printf("metric:%d,metric_clean:%d,dest:%s\r\n", metric, metric_clean, dest);
     if(metric == metric_clean) { //需要清理的路由
-      snprintf(buf,sizeof(buf), "ip rule del  to %s lookup %s pref %d", dip, table, metric);
+      snprintf(buf,sizeof(buf), "ip rule del  to %s/32", dip);
       if(v)
 	printf("%s\r\n",buf);
       system(buf);
