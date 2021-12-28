@@ -139,8 +139,11 @@ void ip_route(const char * dip) {
   uint8_t ip[20];
   char dip0[30];
   int metric, metric_clean;
-  uint8_t hour = time(NULL) % (3600 * 24) / 3600;
-  metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  time_t time0;
+  struct tm tm;
+  time(&time0);
+  localtime_r(&time0, &tm);
+  metric_clean=29000 + ((tm.tm_hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
   snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   if(strcmp(dip0, dip) != 0) //ip格式不对
@@ -167,7 +170,7 @@ void ip_route(const char * dip) {
       return; //路由表中存在此路由
     }
   }
-  snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf, sizeof(buf), "ip ro add %s metric %d via %s", dip, tm.tm_hour + 29000, remote_ip); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
@@ -181,9 +184,12 @@ void ip_rule(const char * dip) {
   char dip0[30];
   bool update = false;
   int metric, metric_clean;
-  uint8_t hour = time(NULL) % (3600 * 24) / 3600;
+  time_t time0;
+  struct tm tm;
+  time(&time0);
+  localtime_r(&time0, &tm);
 
-  metric_clean=29000 + ((hour + 1) % 24); //根据metric 清理过期路由 下一小时
+  metric_clean=29000 + ((tm.tm_hour + 1) % 24); //根据metric 清理过期路由 下一小时
   sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]);
   snprintf(dip0, sizeof(dip0), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   if(strcmp(dip0, dip) != 0) //ip格式不对，退出
@@ -215,7 +221,7 @@ void ip_rule(const char * dip) {
     }
   }
   fclose(dfp);
-  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + hour); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
@@ -224,7 +230,7 @@ void ip_rule(const char * dip) {
   else {
     dfp=fopen("/tmp/dnsmasq_rule.list","a");
     if(dfp) {
-      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + hour, dip, table);
+      snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + tm.tm_hour, dip, table);
       fputs(buf, dfp);
       fclose(dfp);
     }
