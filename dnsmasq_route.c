@@ -46,7 +46,7 @@ void update_rule_list() {
   system("ip rule list |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list"); //初始化已经清单
 }
 extern char * optarg;
-char * buf0, * remote_ip, * dns_server, skip[31], *table;
+char * buf0, * remote_ip, * dns_server, skip[100], *table;
 int main(int argc, char * argv[])
 {
   int opt = 0;
@@ -95,13 +95,14 @@ int main(int argc, char * argv[])
 
 void log_scan() {
   char buf[300],proc[31],sip[100],domain[100],to[100],dip[100];
-  int skip_i;
   uint32_t pid;
   int rc;
   while(1) {
-    rc = scanf("%30s %30s %d %d:%d:%d %d %30s %30s",
-	skip,skip,
-	&skip_i,&skip_i,&skip_i,&skip_i, &skip_i, skip, proc);
+/*
+Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
+*/
+    rc = scanf("%30s %30s %30s %30s %30s %30s %30s",
+	skip, skip, skip, skip, skip, skip, proc);
     if(rc <= 0) continue;
     if(strncmp(proc,"dnsmasq[",sizeof("dnsmasq[")-1) != 0) {
       fgets(buf,sizeof(buf),stdin); //清理剩余部分

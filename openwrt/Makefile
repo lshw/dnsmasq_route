@@ -51,7 +51,8 @@ endef
 
 define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route_cross $(1)/usr/bin/dnsmasq_route
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route $(1)/usr/bin/dnsmasq_route
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_log $(1)/usr/bin/dnsmasq_log
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.sh $(1)/usr/bin/dnsmasq_route.sh
 endef
 

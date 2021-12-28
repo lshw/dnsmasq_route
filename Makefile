@@ -26,60 +26,75 @@ export STAGING_DIR=/tmp/    #just for supress warning of staging_dir not define
 # targets for nativei (non-cross) compile 
 all:
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -ggdb -static -O2
+	${cc_local}   -o ${NAME}  -I. ${SOURCES} ${FLAGS} -ggdb -O2
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -ggdb -O2
 
 freebsd:
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -ggdb -static -O2
+	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -ggdb -static -O2
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -ggdb -static -O2
 
 mac:
 	rm -f ${NAME}
 	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS}  -ggdb -O2
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -ggdb -O2
 
 cygwin:
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -ggdb -static -O2 -D_GNU_SOURCE
+	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -ggdb -static -O2 -D_GNU_SOURCE
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -ggdb -static -O2 -D_GNU_SOURCE
 
 #targes for general cross compile
 
 cross:
-	${cc_cross}   -o ${NAME}_cross    -I. ${SOURCES} ${FLAGS} -lrt -O2
+	${cc_cross}   -o ${NAME}  -I. ${SOURCES} ${FLAGS} -O2
+	${cc_cross}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -O2
 
 cross2:
-	${cc_cross}   -o ${NAME}_cross    -I. ${SOURCES} ${FLAGS} -lrt -static -lgcc_eh -O2
+	${cc_cross}   -o ${NAME}    -I. ${SOURCES} ${FLAGS} -static -lgcc_eh -O2
+	${cc_cross}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -static -lgcc_eh -O2
 
 cross3:
-	${cc_cross}   -o ${NAME}_cross    -I. ${SOURCES} ${FLAGS} -lrt -static -O2
+	${cc_cross}   -o ${NAME}    -I. ${SOURCES} ${FLAGS} -static -O2
+	${cc_cross}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -static -O2
 
 #targets only for debug purpose
 fast: 
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -ggdb
+	${cc_local}   -o ${NAME}     -I. ${SOURCES} ${FLAGS} -ggdb
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c ${FLAGS} -ggdb
 debug: 
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -Wformat-nonliteral -D MY_DEBUG -ggdb
+	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -Wformat-nonliteral -D MY_DEBUG -ggdb
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c  ${FLAGS} -Wformat-nonliteral -D MY_DEBUG -ggdb
 debug2: 
 	rm -f ${NAME}
-	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -lrt -Wformat-nonliteral -ggdb
+	${cc_local}   -o ${NAME}          -I. ${SOURCES} ${FLAGS} -Wformat-nonliteral -ggdb
+	${cc_local}   -o dnsmasq_log  -I. dnsmasq_log.c  ${FLAGS} -Wformat-nonliteral -ggdb
 
 mips24kc_be: 
-	${cc_mips24kc_be}  -o ${NAME}_$@   -I. ${SOURCES} ${FLAGS} -lrt -lgcc_eh -static -O2
+	${cc_mips24kc_be}  -o ${NAME}_$@   -I. ${SOURCES}  ${FLAGS} -lgcc_eh -static -O2
+	${cc_mips24kc_be} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -lgcc_en -static -O2
 
 mips24kc_le: 
-	${cc_mips24kc_le}  -o ${NAME}_$@   -I. ${SOURCES} ${FLAGS} -lrt -lgcc_eh -static -O2
+	${cc_mips24kc_le}  -o ${NAME}_$@   -I. ${SOURCES} ${FLAGS} -lgcc_eh -static -O2
+	${cc_mips24kc_le} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -lgcc_en -static -O2
 
 amd64:
-	${cc_amd64}   -o ${NAME}_$@    -I. ${SOURCES} ${FLAGS} -lrt -static -O2 -lgcc_eh -ggdb
+	${cc_amd64}   -o ${NAME}_$@ -I. ${SOURCES}   ${FLAGS} -static -O2 -lgcc_eh -ggdb
+	${cc_amd64} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -static -O2 -lgcc_en -ggdb
 
 x86:          #to build this you need 'g++-multilib' installed 
-	${cc_x86}   -o ${NAME}_$@      -I. ${SOURCES} ${FLAGS} -lrt -static -O2 -lgcc_eh -ggdb
+	${cc_x86}   -o ${NAME}_$@   -I. ${SOURCES} ${FLAGS} -static -O2 -lgcc_eh -ggdb
+	${cc_x86} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -static -O2 -lgcc_en -ggdb
 arm:
-	${cc_arm}   -o ${NAME}_$@      -I. ${SOURCES} ${FLAGS} -lrt -static -O2 -lgcc_eh
-
+	${cc_arm}   -o ${NAME}_$@   -I. ${SOURCES} ${FLAGS} -static -O2 -lgcc_eh
+	${cc_arm} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -static -O2 -lgcc_en
 
 mac_cross:   #need to install 'osxcross' first.
-	${cc_mac_cross}   -o ${NAME}_mac          -I. ${SOURCES} ${FLAGS}  -ggdb -O2
+	${cc_mac_cross}   -o ${NAME}_mac  -I. ${SOURCES} ${FLAGS} -ggdb -O2
+	${cc_mac_cross} -o dnsmasq_log -I. dnsmasq_log.c ${FLAGS} -ggdb -O2
 
 clean:	
 	rm -f ${TAR}
-	rm -f ${NAME} ${NAME}_cross ${NAME}_mac
+	rm -f ${NAME} ${NAME}_mac
