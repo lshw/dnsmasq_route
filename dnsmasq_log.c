@@ -69,7 +69,7 @@ int main(int argc, char * argv[])
 }
 
 bool log_scan(const char * filename) {
-  char buf[300],proc[31],domain[100],to[100];
+  char buf[300],proc[31],domain[100],to[100],domain0[100];
   int rc;
   uint8_t sip[4];
   uint8_t dip[4];
@@ -110,7 +110,11 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     dip32=(uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
       if(strcmp(to, "is") == 0) {
        for(uint16_t i = 0; i< 2048; i ++) {
-         if(ips[i] == 0 && strncmp(domain, "localhost", sizeof(domain)) != 0) {
+         if(ips[i] == 0
+           && sip[0] != 127
+           && strncmp(domain, domain0, sizeof(domain)) != 0   //与上次域名不同
+           && strncmp(domain, "localhost", sizeof(domain)) != 0) {
+           strncpy(domain0, domain, sizeof(domain));
            printf("%04d-%02d-%02d %02d:%02d:%02d %d.%d.%d.%d \t%s\n",
              tm.tm_year+1900,
              tm.tm_mon+1,
