@@ -32,7 +32,7 @@ void load_ips() {
     if(rc != 8) continue;
     ips[count]=(uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
     if(v)
-      printf("%d.%d.%d.%d:%08x,%d\r\n", ip[0], ip[1], ip[2], ip[3], ips[count], count);
+      printf("%d.%d.%d.%d:%08x,%d\n", ip[0], ip[1], ip[2], ip[3], ips[count], count);
     count++;
     }
   fclose(fp);
@@ -52,7 +52,7 @@ int main(int argc, char * argv[])
         v = true;
         break;
       case 'V':
-        printf("Version:%s\r\n",GIT_VER);
+        printf("Version:%s\n",GIT_VER);
         break;
     }
   }
@@ -69,9 +69,9 @@ int main(int argc, char * argv[])
 }
 
 bool log_scan(const char * filename) {
-  char buf[300],proc[31],sip[100],domain[100],to[100];
+  char buf[300],proc[31],domain[100],to[100];
   int rc;
-  uint8_t ip[4];
+  uint8_t sip[4];
   uint8_t dip[4];
   uint32_t dip32;
   uint16_t year;
@@ -104,20 +104,21 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
        dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
     rc = fscanf(fp, "%30s %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %hhd.%hhd.%hhd.%hhd",
-	skip, &ip[0], &ip[1], &ip[2], &ip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
+	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
     if(rc != 13) continue;
   //  if(strncmp(to,"to",sizeof(to)) != 0) continue;
     dip32=(uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
       if(strcmp(to, "is") == 0) {
        for(uint16_t i = 0; i< 2048; i ++) {
          if(ips[i] == 0 && strncmp(domain, "localhost", sizeof(domain)) != 0) {
-           printf("%04d-%02d-%02d %02d:%02d:%02d %s\r\n",
+           printf("%04d-%02d-%02d %02d:%02d:%02d %d.%d.%d.%d \t%s\n",
              tm.tm_year+1900,
              tm.tm_mon+1,
              tm.tm_mday,
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
+             sip[0],sip[1],sip[2],sip[3],
              domain);
            break;
          }
