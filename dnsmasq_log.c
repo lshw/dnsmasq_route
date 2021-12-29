@@ -13,11 +13,10 @@ bool log_scan(const char * filename);
 bool v = false;
 uint32_t ips[2048];
 extern char * optarg;
-char * buf0, * dns_server, skip[100];
+char skip[100];
 void load_ips() {
   FILE *fp;
   int rc;
-  char dest[100];
   uint8_t ip[4];
   uint16_t count = 0;
   memset(ips,0,sizeof(ips));
@@ -55,13 +54,10 @@ int main(int argc, char * argv[])
       case 'V':
         printf("Version:%s\r\n",GIT_VER);
         break;
-      case 'd':
-        dns_server = optarg;
-        break;
     }
   }
-  if( h || dns_server == NULL ) {
-    printf("\r\nUsage:\r\n%s -d dns_server \r\n\r\n -d exclude remote dns server\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+  if( h ) {
+    printf("\r\nUsage:\r\n%s [-v] [-V]\r\n\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   load_ips();
