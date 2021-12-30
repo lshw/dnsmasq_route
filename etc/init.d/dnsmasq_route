@@ -5,6 +5,9 @@ remote_ip=10.7.0.1
 dns_server=10.7.0.1
 start(){
 	#table
+        if ! [ -e /etc/dnsmasq_route.ini ] ; then
+        	echo github.com > /etc/dnsmasq_route.ini
+	fi
         echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq_route.cfg
         cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
         while read hostname note
