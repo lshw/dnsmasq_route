@@ -74,6 +74,7 @@ define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/etc/config
 
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.ini $(1)/etc/dnsmasq_route.ini
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/etc/init.d/dnsmasq_route $(1)/etc/etc/init.d/dnsmasq_route
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt/files/luci-app-dnsmasq_route $(1)/etc/uci-defaults/luci-app-dnsmasq_route
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/files/dnsmasq_route.config $(1)/etc/config/dnsmasq_route
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/i18n/dnsmasq_route.zh-cn.lmo $(1)/usr/lib/lua/luci/i18n/dnsmasq_route.zh-cn.lmo
