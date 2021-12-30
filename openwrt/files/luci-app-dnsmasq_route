@@ -1,0 +1,11 @@
+#!/bin/sh
+
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@dnsmasq_route[-1]
+	add ucitrack dnsmasq_route
+	set ucitrack.@dnsmasq_route[-1].init=dnsmasq_route
+	commit ucitrack
+EOF
+
+rm -f /tmp/luci-indexcache
+exit 0

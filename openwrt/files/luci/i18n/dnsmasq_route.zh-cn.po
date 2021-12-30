@@ -1,0 +1,28 @@
+msgid ""
+msgstr ""
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "dnsmasq_route config"
+msgstr "dnsmasq_route 设置"
+
+msgid "dns server"
+msgstr "dns 服务器"
+
+msgid "dnsmasq_route is running."
+msgstr "dnsmasq_route 运行中。"
+
+msgid "dnsmasq_route is not running."
+msgstr "dnsmasq_route 未运行."
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "configfile"
+msgstr "配置文件"
+
+msgid "forward domain list /etc/dnsmasq_route.ini."
+msgstr "转发的域名列表 /etc/dnsmasq_route.ini。"

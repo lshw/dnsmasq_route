@@ -49,11 +49,36 @@ define Build/Prepare
 	$(Build/Patch)
 endef
 
+define Package/dnsmasq_route/postinst
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	( . /etc/uci-defaults/luci-app-dnsmasq_route ) && rm -f /etc/uci-defaults/luci-app-dnsmasq_route
+	rm -f /tmp/luci-indexcache
+	#clean dnsmasq cache
+	/etc/init.d/dnsmasq reload  
+fi
+exit 0
+endef
+
 define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route $(1)/usr/bin/dnsmasq_route
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_log $(1)/usr/bin/dnsmasq_log
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.sh $(1)/usr/bin/dnsmasq_route.sh
+
+#luci界面
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
+	$(INSTALL_DIR) $(1)/etc/config
+
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.ini $(1)/etc/dnsmasq_route.ini
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt/files/luci-app-dnsmasq_route $(1)/etc/uci-defaults/luci-app-dnsmasq_route
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/files/dnsmasq_route.config $(1)/etc/config/dnsmasq_route
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/i18n/dnsmasq_route.zh-cn.lmo $(1)/usr/lib/lua/luci/i18n/dnsmasq_route.zh-cn.lmo
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/model/dnsmasq_route.lua $(1)/usr/lib/lua/luci/model/cbi/dnsmasq_route.lua
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/controller/dnsmasq_route.lua $(1)/usr/lib/lua/luci/controller/dnsmasq_route.lua
 endef
 
 $(eval $(call BuildPackage,dnsmasq_route))
