@@ -13,18 +13,6 @@ s.anonymous = true
 
 enable = s:option(Flag, "enabled", translate("Enable"))
 
-function enable.write(self, section, value)
-        if value == "1" then
-                luci.sys.call("/etc/init.d/dnsmasq_route enable >/dev/null")
-                luci.sys.call("/etc/init.d/dnsmasq_route start >/dev/null")
-                luci.sys.call("/etc/init.d/dnsmasq reload >/dev/null")
-        else
-                luci.sys.call("/etc/init.d/dnsmasq_route stop >/dev/null")
-                luci.sys.call("/etc/init.d/dnsmasq_route disable >/dev/null")
-        end
-        Flag.write(self, section, value)
-end
-
 s:option(Value, "dns_server", translate("dns server"))
 s:option(Value, "remote_ip", translate("remote_ip"))
 
@@ -45,6 +33,18 @@ end
 function config.write(self, section, value)
 	value = value:gsub("\r\n?", "\n")
 	nixio.fs.writefile("/etc/dnsmasq_route.ini", value)
+end
+
+function enable.write(self, section, value)
+        if value == "1" then
+                luci.sys.call("/etc/init.d/dnsmasq_route enable >/dev/null")
+                luci.sys.call("/etc/init.d/dnsmasq_route start >/dev/null")
+                luci.sys.call("/etc/init.d/dnsmasq reload >/dev/null")
+        else
+                luci.sys.call("/etc/init.d/dnsmasq_route stop >/dev/null")
+                luci.sys.call("/etc/init.d/dnsmasq_route disable >/dev/null")
+        end
+        Flag.write(self, section, value)
 end
 
 return m

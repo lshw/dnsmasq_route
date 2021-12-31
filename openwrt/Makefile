@@ -51,12 +51,9 @@ endef
 
 define Package/dnsmasq_route/postinst
 #!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	( . /etc/uci-defaults/luci-app-dnsmasq_route ) && rm -f /etc/uci-defaults/luci-app-dnsmasq_route
-	rm -f /tmp/luci-indexcache
-	#clean dnsmasq cache
-	/etc/init.d/dnsmasq reload  
-fi
+rm -f /tmp/luci-indexcache
+#clean dnsmasq cache
+/etc/init.d/dnsmasq reload
 exit 0
 endef
 
