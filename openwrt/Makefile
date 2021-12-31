@@ -51,7 +51,7 @@ endef
 
 define Package/dnsmasq_route/postinst
 #!/bin/sh
-/etc/init.d/dnsmasq reload
+/etc/init.d/dnsmasq restart
 exit 0
 endef
 

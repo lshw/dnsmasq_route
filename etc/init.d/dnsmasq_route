@@ -16,7 +16,7 @@ start(){
         do
         	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
         done
-        /etc/init.d/dnsmasq reload
+        /etc/init.d/dnsmasq restart
         if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
         	table=106
         else
