@@ -8,23 +8,17 @@ start(){
         if ! [ -e /etc/dnsmasq_route.ini ] ; then
         	echo github.com > /etc/dnsmasq_route.ini
 	fi
-        echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq_route.cfg
+        echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq.d/dnsmasq_route.conf
         cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
         while read hostname note
         do
-        	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq_route.cfg
+        	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
         done
         dnsmasq_cfg=`ps |grep 'dnsmas[q] -C /var/etc' |tr ' ' '\n' |grep dnsmasq.conf`
         if ! [ "a$dnsmasq_cfg" == "a" ] ; then
         	/etc/init.d/dnsmasq start
         	dnsmasq_cfg=`ps |grep 'dnsmas[q] -C /var/etc' |tr ' ' '\n' |grep dnsmasq.conf`
         fi
-         if [ -e $dnsmasq_cfg ] ; then
-           if [ "a`grep '/tmp/dnsmasq_route.cfg' $dnsmasq_cfg`" == "a" ] ; then
-           	echo  >> $dnsmasq_cfg
-           	echo "conf-file=/tmp/dnsmasq_route.cfg" >> $dnsmasq_cfg
-           fi
-         fi
         
         if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
         	table=106
@@ -34,7 +28,6 @@ start(){
 	if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
 		ip route add default via $remote_ip table $table
 	fi
-        killall -1 dnsmasq
         if [ "`ps |grep dnsmasq_[r]oute`" ] ;then
 		echo "dnsmasq_route has already started."
         else
