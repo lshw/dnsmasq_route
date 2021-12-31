@@ -14,12 +14,7 @@ start(){
         do
         	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
         done
-        dnsmasq_cfg=`ps |grep 'dnsmas[q] -C /var/etc' |tr ' ' '\n' |grep dnsmasq.conf`
-        if ! [ "a$dnsmasq_cfg" == "a" ] ; then
-        	/etc/init.d/dnsmasq start
-        	dnsmasq_cfg=`ps |grep 'dnsmas[q] -C /var/etc' |tr ' ' '\n' |grep dnsmasq.conf`
-        fi
-        
+        /etc/init.d/dnsmasq reload
         if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
         	table=106
         else
@@ -28,16 +23,16 @@ start(){
 	if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
 		ip route add default via $remote_ip table $table
 	fi
-        if [ "`ps |grep dnsmasq_[r]oute`" ] ;then
+        if [ "`ps |grep dnsmasq_[r]oute |grep -v start$`" ] ;then
 		echo "dnsmasq_route has already started."
         else
-		nohup logread -f -S 128000 -e dnsmasq |/usr/bin/dnsmasq_route -d $dns_server -r $remote_ip -t $table
+		nohup dnsmasq_route.sh $dns_server $remote_ip $table>/dev/null 2>/dev/null &
 		echo "dnsmasq_route has started."
 	fi
 }
 
 stop(){
-	killall dnsmasq_route
+	killall dnsmasq_route dnsmasq_route.sh
 	echo "dnsmasq_route has stopped."
 }
 
