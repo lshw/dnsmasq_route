@@ -32,7 +32,7 @@ define Package/dnsmasq_route
 	CATEGORY:=Network
 	TITLE:=dnsmasq_route
 	URL:=https://github.com/lshw/dnsmasq_route
-	DEPENDS:= +libstdcpp
+	DEPENDS:= +libstdcpp +dnsmasq +coreutils-nohup
 endef
 
 define Package/dnsmasq_route/description
