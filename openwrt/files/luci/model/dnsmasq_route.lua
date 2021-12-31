@@ -33,6 +33,8 @@ end
 function config.write(self, section, value)
 	value = value:gsub("\r\n?", "\n")
 	nixio.fs.writefile("/etc/dnsmasq_route.ini", value)
+        luci.sys.call("/etc/init.d/dnsmasq_route restart >/dev/null")
+        luci.sys.call("/etc/init.d/dnsmasq reload >/dev/null")
 end
 
 function enable.write(self, section, value)
