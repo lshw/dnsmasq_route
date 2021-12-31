@@ -4,6 +4,7 @@ START=99
 
 remote_ip=$(uci get dnsmasq_route.config.remote_ip)
 dns_server=$(uci get dnsmasq_route.config.dns_server)
+
 start(){
 	#table
         if ! [ -e /etc/dnsmasq_route.ini ] ; then
