@@ -76,15 +76,21 @@ bool is_exists(const uint32_t ip, char * host) {
   strncat(exists, buf, sizeof(exists) - 1);
   return false;
 }
+extern char *  optarg;
+uint16_t l = 3600;
 int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  while((opt = getopt(argc, argv, "hHvVd:")) != -1) {
+  while((opt = getopt(argc, argv, "l:L:hHvVd:")) != -1) {
     switch(opt) {
       case 'h':
       case 'H': //帮助信息
         h = true;
+        break;
+      case 'l':
+      case 'L': //要显示的最后秒数
+        l = atoi(optarg);
         break;
       case 'v':
         v = true;
@@ -95,7 +101,7 @@ int main(int argc, char * argv[])
     }
   }
   if( h ) {
-    printf("\r\nUsage:\r\n%s [-v] [-V]\r\n\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\nUsage:\r\n%s -l 600 [-v] [-V]\r\n\r\n -l 要显示的时长秒数\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   load_hostname();
@@ -136,6 +142,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
      tm.tm_year = year - 1900;
      snprintf(buf, sizeof(buf), "%s %02d %s %d", month, tm.tm_mday, to, year);
      strptime(buf, "%b %d %H:%M:%S %Y", &tm);
+     if(mktime(&tm) + l < time(NULL)) continue; //长于10分钟之前的访问， 就跳过
      
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
