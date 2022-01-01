@@ -113,11 +113,14 @@ bool log_scan(const char * filename) {
   char buf[300],proc[31],domain[100],to[100],domain0[100];
   int rc;
   uint8_t sip[4];
+  char sipstr[30];
   uint8_t dip[4];
   uint32_t dip32;
   uint16_t year;
   char month[20];
   struct tm tm;
+  char *ipname;
+  ipname = sipstr;
   FILE * fp = fopen(filename, "r");
   if(!fp)
     return false;
@@ -148,6 +151,8 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
 	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
     if(rc != 13) continue;
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
+    snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
+    ipname = sipstr;
   //  if(strncmp(to,"to",sizeof(to)) != 0) continue;
     dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
       if(strcmp(to, "is") == 0) {
@@ -157,21 +162,23 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
            && strncmp(domain, domain0, sizeof(domain)) != 0   //与上次域名不同
            && strncmp(domain, "localhost", sizeof(domain)) != 0) {
            if(is_exists(sip32, domain)) continue;
-           uint16_t h = 0;
            for(uint16_t l = 1; l < 512; l++)
              if(hostnames[l].ip == sip32) {
-               h = l;
+               ipname = hostnames[l].name;
                break;
              }
+           memset(skip, 0, sizeof(skip));
+           year = strlen(ipname);
+           if(year < 30) {
+             memset(skip, ' ', 30 - year);
+           }
            strncpy(domain0, domain, sizeof(domain));
-           printf("%04d-%02d-%02d %02d:%02d:%02d %d.%d.%d.%d\t%s \t%s\n",
-             tm.tm_year+1900,
-             tm.tm_mon+1,
-             tm.tm_mday,
+           printf("%02d:%02d:%02d %s%s \t%s\n",
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
-             sip[0], sip[1], sip[2], sip[3], hostnames[h].name,
+             skip,
+             ipname,
              domain);
            break;
          }

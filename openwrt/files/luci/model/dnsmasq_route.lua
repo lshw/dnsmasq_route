@@ -47,9 +47,10 @@ function enable.write(self, section, value)
         Flag.write(self, section, value)
 end
 
-dnslog = s:option(Value, "dnslog", translate("最近dns解析清单."), "")
+dnslog = s:option(Value, "域名解析清单", translate("最近dns解析清单."), "")
 dnslog.template = "cbi/tvalue"
 dnslog.rows = 10
+dnslog.readonly = 1
 dnslog.wrap = "off"
 
 function dnslog.cfgvalue(self, section)
