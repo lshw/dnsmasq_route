@@ -11,15 +11,15 @@ s = m:section(TypedSection, "dnsmasq_route", "")
 s.addremove = false
 s.anonymous = true
 
-enable = s:option(Flag, "enabled", translate("Enable"))
+enable = s:option(Flag, "enabled", "启用")
 
-s:option(Value, "dns_server", translate("dns server"))
-s:option(Value, "remote_ip", translate("remote_ip"))
+s:option(Value, "dns_server", "dns服务器")
+s:option(Value, "remote_ip", "路由地址")
 
 --function dns_server.cfgvalue(
 
 
-config = s:option(Value, "config", translate("configfile"), translate("This file is /etc/dnsmasq_route.ini."), "")
+config = s:option(Value, "config", "域名表", "", "")
 config.template = "cbi/tvalue"
 config.rows = 10
 config.wrap = "off"
@@ -47,7 +47,7 @@ function enable.write(self, section, value)
         Flag.write(self, section, value)
 end
 
-dnslog = s:option(Value, "域名解析清单", translate("最近dns解析清单."), "")
+dnslog = s:option(Value, "dns_log", "最近dns解析清单", "")
 dnslog.template = "cbi/tvalue"
 dnslog.rows = 10
 dnslog.readonly = 1
