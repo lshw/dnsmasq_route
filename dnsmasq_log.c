@@ -32,13 +32,11 @@ void load_hostname(){
   while(!feof(fp)) {
     rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %30s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
     if(rc != 8){
-      printf("rc=%d\r\n",rc);
       continue;
     }
     hostnames[count].ip = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
     count ++;
   }
-  printf("count=%d\r\n", count);
   fclose(fp);
 }
 void load_ips() {
