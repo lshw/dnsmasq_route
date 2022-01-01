@@ -191,7 +191,7 @@ void ip_rule(const char * dip) {
     if(!del) {
       dfp=fopen("/tmp/dnsmasq_rule.list","a");
       if(dfp) {
-	snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\r\n", 29000 + tm.tm_hour, dip, table);
+	snprintf(buf, sizeof(buf), "%d from all to %s lookup %s\n", 29000 + tm.tm_hour, dip, table);
 	fputs(buf, dfp);
 	fclose(dfp);
       }
