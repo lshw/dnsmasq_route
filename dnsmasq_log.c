@@ -6,14 +6,41 @@
 #define __USE_XOPEN 1
 #include <time.h>
 #include <getopt.h>
+#include <sys/stat.h>
 #ifndef GIT_VER
 #define GIT_VER "test"
 #endif
 bool log_scan(const char * filename);
 bool v = false;
 uint32_t ips[2048];
-extern char * optarg;
 char skip[100];
+extern char * optarg;
+struct hostname {
+uint32_t ip;
+char name[31];
+} hostnames[512];
+void load_hostname(){
+  FILE * fp;
+  fp = fopen("/tmp/dhcp.leases","r");
+  if(!fp) return;
+  int rc;
+  uint16_t count = 1;
+  memset(hostnames, 0, sizeof(hostnames));
+  hostnames[0].name[0]='*';
+ 
+  uint8_t ip[4];
+  while(!feof(fp)) {
+    rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %30s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
+    if(rc != 8){
+      printf("rc=%d\r\n",rc);
+      continue;
+    }
+    hostnames[count].ip = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
+    count ++;
+  }
+  printf("count=%d\r\n", count);
+  fclose(fp);
+}
 void load_ips() {
   FILE *fp;
   int rc;
@@ -38,6 +65,21 @@ void load_ips() {
   fclose(fp);
   }
 }
+char exists[2048 * 2];
+bool is_exists(const uint32_t ip, char * host) {
+  char buf[100];
+
+  snprintf(buf, sizeof(buf), "%08x %s ", ip, host);
+  uint16_t len = strlen(buf);
+  if(strstr(exists, buf) != NULL)
+    return true; //已经存在
+  if(strlen(exists) + len > sizeof(exists)-1) {//溢出
+    memcpy(exists, &exists[sizeof(exists) / 2], sizeof(exists) / 2);
+  }
+  len = strlen(exists);
+  strncat(exists, buf, sizeof(exists) - 1);
+  return false;
+}
 int main(int argc, char * argv[])
 {
   int opt = 0;
@@ -60,6 +102,7 @@ int main(int argc, char * argv[])
     printf("\r\nUsage:\r\n%s [-v] [-V]\r\n\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
+  load_hostname();
   load_ips();
   bool f1 = log_scan("/tmp/syslog.old");
   bool f2 = log_scan("/tmp/syslog");
@@ -106,23 +149,31 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     rc = fscanf(fp, "%30s %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %hhd.%hhd.%hhd.%hhd",
 	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
     if(rc != 13) continue;
+    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
   //  if(strncmp(to,"to",sizeof(to)) != 0) continue;
-    dip32=(uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
+    dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
       if(strcmp(to, "is") == 0) {
        for(uint16_t i = 0; i< 2048; i ++) {
          if(ips[i] == 0
            && sip[0] != 127
            && strncmp(domain, domain0, sizeof(domain)) != 0   //与上次域名不同
            && strncmp(domain, "localhost", sizeof(domain)) != 0) {
+           if(is_exists(sip32, domain)) continue;
+           uint16_t h = 0;
+           for(uint16_t l = 1; l < 512; l++)
+             if(hostnames[l].ip == sip32) {
+               h = l;
+               break;
+             }
            strncpy(domain0, domain, sizeof(domain));
-           printf("%04d-%02d-%02d %02d:%02d:%02d %d.%d.%d.%d \t%s\n",
+           printf("%04d-%02d-%02d %02d:%02d:%02d %d.%d.%d.%d\t%s \t%s\n",
              tm.tm_year+1900,
              tm.tm_mon+1,
              tm.tm_mday,
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
-             sip[0],sip[1],sip[2],sip[3],
+             sip[0], sip[1], sip[2], sip[3], hostnames[h].name,
              domain);
            break;
          }
