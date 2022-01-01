@@ -24,14 +24,12 @@ void load_hostname(){
   fp = fopen("/tmp/dhcp.leases","r");
   if(!fp) return;
   int rc;
-  uint16_t count = 1;
-  memset(hostnames, 0, sizeof(hostnames));
-  hostnames[0].name[0]='*';
+  uint16_t count = 0;
  
   uint8_t ip[4];
   while(!feof(fp)) {
     rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %30s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
-    if(rc != 8){
+    if(rc != 8 || hostnames[count].name[0] == '*'){
       continue;
     }
     hostnames[count].ip = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
