@@ -19,16 +19,6 @@ s:option(Value, "remote_ip", translate("remote_ip"))
 --function dns_server.cfgvalue(
 
 
-dnslog = s:option(Value, "dnslog", translate("最近dns解析清单."), "")
-dnslog.template = "cbi/tvalue"
-dnslog.rows = 10
-dnslog.wrap = "off"
-
-function dnslog.cfgvalue(self, section)
-	local t = io.popen('dnsmasq_log')
-	return t:read("*all")
-end
-
 config = s:option(Value, "config", translate("configfile"), translate("This file is /etc/dnsmasq_route.ini."), "")
 config.template = "cbi/tvalue"
 config.rows = 10
@@ -55,6 +45,16 @@ function enable.write(self, section, value)
                 luci.sys.call("/etc/init.d/dnsmasq_route disable >/dev/null")
         end
         Flag.write(self, section, value)
+end
+
+dnslog = s:option(Value, "dnslog", translate("最近dns解析清单."), "")
+dnslog.template = "cbi/tvalue"
+dnslog.rows = 10
+dnslog.wrap = "off"
+
+function dnslog.cfgvalue(self, section)
+	local t = io.popen('dnsmasq_log')
+	return t:read("*all")
 end
 
 return m
