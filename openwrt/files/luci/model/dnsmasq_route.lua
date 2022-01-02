@@ -54,7 +54,7 @@ dnslog.readonly = 1
 dnslog.wrap = "off"
 
 function dnslog.cfgvalue(self, section)
-	local t = io.popen('dnsmasq_log -l 600 | tail -n 200 |sort -r')
+	local t = io.popen('dnsmasq_log -V -l 600 | tail -n 200 |sort -r')
 	return t:read("*all")
 end
 
