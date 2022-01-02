@@ -25,7 +25,7 @@ start(){
 	if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
 		ip route add default via $remote_ip table $table
 	fi
-        if [ "`ps |grep dnsmasq_route |grep -v -e dnsmasq_route.sh -e grep -e init.d`" ] ;then
+        if [ "`ps |grep "dnsmasq_route -d" |grep -v -e dnsmasq_route.sh -e grep -e init.d`" ] ;then
 		echo "dnsmasq_route has already started."
         else
 		nohup dnsmasq_route.sh $dns_server $remote_ip $table >/dev/null 2>/dev/null &
@@ -34,7 +34,7 @@ start(){
 }
 
 stop(){
-	kill $( ps |grep  -e "dnsmasq_route -d" -e dnsmasq_route.sh -e 128129 |awk '{printf " " $1}' )
+	kill $( ps |grep  -e "dnsmasq_route -d" -e dnsmasq_route.sh -e 128129 |awk '{printf " " $1}' >/dev/null )
 	echo "dnsmasq_route has stopped."
 }
 
