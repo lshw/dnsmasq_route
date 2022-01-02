@@ -156,43 +156,47 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     rc = fscanf(fp, "%30s %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %hhd.%hhd.%hhd.%hhd",
 	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
     fgets(buf,sizeof(buf),fp); //清理剩余部分
-    if(rc != 13) continue;
+    if(rc != 13) continue; //行不完整跳过
+    if(sip[0] == 127) continue; //申请地址是本机127.0.0.1， 跳过
+    if(strcmp(proc, "cached") == 0) continue; //cached的行不显示
+    if(strcmp(to, "is") != 0) continue; //只显示 is 行
+    if(strcmp(domain, "localhost") == 0) continue; //要解析的域名是 localhost 跳过
+    if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
+    strncpy(domain0, domain, sizeof(domain));
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
+    if(is_exists(sip32, domain)) continue;
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
     ipname = sipstr;
-  //  if(strncmp(to,"to",sizeof(to)) != 0) continue;
+    bool is_route = false;
+    for(uint16_t l = 1; l < 512; l++) //查dhcp.lease文件，替换ip为机器名
+      if(hostnames[l].ip == sip32) {
+        ipname = hostnames[l].name;
+        break;
+      }
     dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
-      if(strcmp(to, "is") == 0 && strcmp(proc, "cached") != 0) {
-       for(uint16_t i = 0; i< 2048; i ++) {
-         if(ips[i] == 0
-           && sip[0] != 127
-           && strncmp(domain, domain0, sizeof(domain)) != 0   //与上次域名不同
-           && strncmp(domain, "localhost", sizeof(domain)) != 0) {
-           if(is_exists(sip32, domain)) continue;
-           for(uint16_t l = 1; l < 512; l++)
-             if(hostnames[l].ip == sip32) {
-               ipname = hostnames[l].name;
-               break;
-             }
-           memset(skip, 0, sizeof(skip));
-           year = strlen(ipname);
-           if(year < 30) {
-             memset(skip, ' ', 30 - year);
-           }
-           strncpy(domain0, domain, sizeof(domain));
-           printf("%02d:%02d:%02d %s%s \t%s\n",
+       is_route = false;
+       for(uint16_t i = 0; i< 2048; i ++) { //检查是否在 已经转路由的ip列表里面，有的话， 就不显示
+         if(ips[i] == 0) break; //ips结束
+         if(ips[i] == dip32) {
+           is_route = true;
+           break;
+         }
+       }
+       if(is_route) continue; //已经在ips里的， 不要再显示
+
+       memset(skip, 0, sizeof(skip));
+       year = strlen(ipname);
+       if(year < 30) {
+          memset(skip, ' ', 30 - year);
+       }
+       printf("%02d:%02d:%02d %s%s \t%s %d.%d.%d.%d\n",
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
              skip,
              ipname,
-             domain);
+             domain,dip[0],dip[1],dip[2],dip[3]);
            break;
-         }
-         if(ips[i] ==  dip32)
-          continue;
-       }
-     }
   }
   fclose(fp);
   return true;
