@@ -189,13 +189,13 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        if(year < 30) {
           memset(skip, ' ', 30 - year);
        }
-       printf("%02d:%02d:%02d %s%s \t%s %d.%d.%d.%d\n",
+       printf("%02d:%02d:%02d %s%s \t%s\n",
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
              skip,
              ipname,
-             domain,dip[0],dip[1],dip[2],dip[3]);
+             domain);
            break;
   }
   fclose(fp);

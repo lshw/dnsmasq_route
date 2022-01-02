@@ -2,24 +2,24 @@ local m, s
 
 local running=(luci.sys.call("pidof dnsmasq_route > /dev/null") == 0)
 if running then
-	m = Map("dnsmasq_route", translate("dnsmasq_route config"), translate("dnsmasq_route is running."))
+	m = Map("dnsmasq_route", translate("dnsmasq_route config"), translate("域名分流运行中"))
 else
-	m = Map("dnsmasq_route", translate("dnsmasq_route config"), translate("dnsmasq_route is not running."))
+	m = Map("dnsmasq_route", translate("dnsmasq_route config"), translate("域名分流未运行"))
 end
 
-s = m:section(TypedSection, "dnsmasq_route", "")
+s = m:section(TypedSection, "dnsmasq_route", "域名分流")
 s.addremove = false
 s.anonymous = true
 
 enable = s:option(Flag, "enabled", "启用")
 
-s:option(Value, "dns_server", "dns服务器")
-s:option(Value, "remote_ip", "路由地址")
+s:option(Value, "dns_server", "分流dns服务器")
+s:option(Value, "remote_ip", "分流路由地址")
 
 --function dns_server.cfgvalue(
 
 
-config = s:option(Value, "config", "域名表", "", "")
+config = s:option(Value, "config", "分流域名表", "", "")
 config.template = "cbi/tvalue"
 config.rows = 10
 config.wrap = "off"
@@ -47,7 +47,7 @@ function enable.write(self, section, value)
         Flag.write(self, section, value)
 end
 
-dnslog = s:option(Value, "dns_log", "最近dns解析清单", "")
+dnslog = s:option(Value, "dns_log", "未分流dns解析清单", "最近10分钟")
 dnslog.template = "cbi/tvalue"
 dnslog.rows = 10
 dnslog.readonly = 1
