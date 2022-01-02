@@ -162,7 +162,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     ipname = sipstr;
   //  if(strncmp(to,"to",sizeof(to)) != 0) continue;
     dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
-      if(strcmp(to, "is") == 0) {
+      if(strcmp(to, "is") == 0 && strcmp(proc, "cached") != 0) {
        for(uint16_t i = 0; i< 2048; i ++) {
          if(ips[i] == 0
            && sip[0] != 127
