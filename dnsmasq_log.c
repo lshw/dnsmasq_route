@@ -29,6 +29,7 @@ void load_hostname(){
   uint8_t ip[4];
   while(!feof(fp)) {
     rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %30s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
+    fgets(skip,sizeof(skip),fp);
     if(rc != 8 || hostnames[count].name[0] == '*'){
       continue;
     }
@@ -154,6 +155,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
     rc = fscanf(fp, "%30s %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %hhd.%hhd.%hhd.%hhd",
 	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
+    fgets(buf,sizeof(buf),fp); //清理剩余部分
     if(rc != 13) continue;
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
