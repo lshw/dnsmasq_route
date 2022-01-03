@@ -6,17 +6,6 @@ remote_ip=$(uci get dnsmasq_route.config.remote_ip)
 dns_server=$(uci get dnsmasq_route.config.dns_server)
 
 start(){
-	#table
-        if ! [ -e /etc/dnsmasq_route.ini ] ; then
-        	echo github.com > /etc/dnsmasq_route.ini
-	fi
-        echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq.d/dnsmasq_route.conf
-        cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
-        while read hostname note
-        do
-        	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
-        done
-        /etc/init.d/dnsmasq restart
         if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
         	table=106
         else
@@ -39,6 +28,17 @@ start(){
 		nohup dnsmasq_route.sh $dns_server $remote_ip $table >/dev/null 2>/dev/null &
 		echo "dnsmasq_route has started."
 	fi
+	#table
+        if ! [ -e /etc/dnsmasq_route.ini ] ; then
+        	echo github.com > /etc/dnsmasq_route.ini
+	fi
+        echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq.d/dnsmasq_route.conf
+        cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
+        while read hostname note
+        do
+        	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
+        done
+        /etc/init.d/dnsmasq restart
 }
 
 stop(){
