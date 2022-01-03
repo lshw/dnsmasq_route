@@ -22,6 +22,14 @@ start(){
         else
         	table=107
 	fi
+
+        # 29021:	from all to 52.36.200.214 lookup 107
+        #清理所有分流路由
+        ip ru list table $table |while read prefix from sip to dip lookup
+        do
+          ip rule del from $sip to $dip lookup $table
+        done
+
 	if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
 		ip route add default via $remote_ip table $table
 	fi

@@ -13,6 +13,7 @@ void ip_rule(const char * dip);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 bool v = false;
+bool route_clean = false;
 void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
   uint32_t dat;
   for(uint8_t i = 0; i < PID_SIZE; i++) {
@@ -51,8 +52,12 @@ int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  while((opt = getopt(argc, argv, "hHvVd:r:t:")) != -1) {
+  while((opt = getopt(argc, argv, "cChHvVd:r:t:")) != -1) {
     switch(opt) {
+      case 'c':
+      case 'C':
+        route_clean = true;
+        break;
       case 'h':
       case 'H': //帮助信息
         h = true;
@@ -75,7 +80,7 @@ int main(int argc, char * argv[])
     }
   }
   if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
-    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -r remote_ip -t 107\r\n\r\n -d remote dns server\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   if(remote_ip == NULL && dns_server != NULL)
@@ -145,7 +150,6 @@ void ip_rule(const char * dip) {
   uint8_t ip[20];
   char dip0[30];
   bool del = false, is_exists = false;
-  int metric, metric_clean;
   time_t time0;
   struct tm tm;
   time(&time0);
@@ -167,15 +171,17 @@ void ip_rule(const char * dip) {
     int rc = fscanf(dfp,"%d %10s %10s %10s %30s", &metric, skip, skip, skip, dest);
     fgets(skip, sizeof(skip), dfp);
     if(rc <= 0) continue;
-    if(v)
-      printf("metric:%d,metric_clean:%d,dest:%s\r\n", metric, metric_clean, dest);
-    if(metric == metric_clean) { //需要清理的路由
-      snprintf(buf,sizeof(buf), "ip rule del to %s/32", dest);
+    if(route_clean) {
       if(v)
-	printf("%s\r\n",buf);
-      system(buf);
-      del = true;
-      continue;
+	printf("metric:%d,metric_clean:%d,dest:%s\r\n", metric, metric_clean, dest);
+      if(metric == metric_clean) { //需要清理的路由
+	snprintf(buf,sizeof(buf), "ip rule del to %s/32", dest);
+	if(v)
+	  printf("%s\r\n",buf);
+	system(buf);
+	del = true;
+	continue;
+      }
     }
     if(strncmp((char *)dip, dest,strlen(dest)) == 0){
       is_exists = true;
