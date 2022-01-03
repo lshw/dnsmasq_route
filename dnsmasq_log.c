@@ -16,8 +16,8 @@ uint32_t ips[2048];
 char skip[100];
 extern char * optarg;
 struct hostname {
-uint32_t ip;
-char name[31];
+  uint32_t ip;
+  char name[31];
 } hostnames[512];
 void load_hostname(){
   FILE * fp;
@@ -117,11 +117,12 @@ int main(int argc, char * argv[])
 }
 
 bool log_scan(const char * filename) {
-  char buf[300],proc[31],domain[100],to[100],domain0[100];
+  char buf[300],proc[31],domain[100],to[100],domain0[100], cname[100];
   int rc;
   uint8_t sip[4];
   char sipstr[30];
   uint8_t dip[4];
+  uint32_t pid, cname_pid = 0;
   uint32_t dip32;
   uint16_t year;
   char month[20];
@@ -157,15 +158,30 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[12670]:  177527 192.168.12.13/40934 query[AAAA] www.google.com from 192.168.12.13
        dnsmasq[12670]:  177527 192.168.12.13/40934 forwarded www.google.com to 8.8.4.4
        dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
-       dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
-    rc = fscanf(fp, "%30s %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %hhd.%hhd.%hhd.%hhd",
-	skip, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, &dip[0], &dip[1], &dip[2], &dip[3]);
+       dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101
+       dnsmasq[14028]: 380 192.168.12.4/37307 query[A] yt3.ggpht.com from 192.168.12.4
+       dnsmasq[14028]: 380 192.168.12.4/37307 forwarded yt3.ggpht.com to 219.141.136.10
+       dnsmasq[14028]: 380 192.168.12.4/37307 reply yt3.ggpht.com is <CNAME>
+       dnsmasq[14028]: 380 192.168.12.4/37307 reply photos-ugc.l.googleusercontent.com is 142.251.43.1
+*/
+
+    rc = fscanf(fp, "%d %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %30s",
+	&pid, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, skip);
     fgets(buf,sizeof(buf),fp); //清理剩余部分
-    if(rc != 13) continue; //行不完整跳过
+    if(rc != 10) continue; //行不完整跳过
+    if(strcmp(skip,"<CNAME>")==0) {
+      cname_pid = pid;
+      strcpy(cname, domain);
+      continue;
+    }
+    if(sscanf(skip,"%hhd.%hhd.%hhd.%hhd", &dip[0], &dip[1], &dip[2], &dip[3]) != 4) continue;
     if(sip[0] == 127) continue; //申请地址是本机127.0.0.1， 跳过
     if(strcmp(to, "is") != 0) continue; //只显示 is 行
-  //  if(strcmp(proc, "cached") != 0) continue; //不显示 cache 行
     if(strcmp(domain, "localhost") == 0) continue; //要解析的域名是 localhost 跳过
+    if(cname_pid > 0 && cname_pid == pid) {
+      cname_pid = 0;
+      strcpy(domain, cname);
+    }
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
     if(is_exists(sip32, domain)) continue;
