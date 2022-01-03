@@ -123,27 +123,30 @@ bool log_scan(const char * filename) {
   uint32_t dip32;
   uint16_t year;
   char month[20];
-  struct tm tm;
+  struct tm tm, tm_now;
   char *ipname;
   ipname = sipstr;
   FILE * fp = fopen(filename, "r");
   if(!fp)
     return false;
+  time_t now_t=time(NULL);
+  localtime_r(&now_t, &tm_now);
+  uint32_t t0 = ((24 + tm_now.tm_hour) * 60 + tm_now.tm_min) * 60 + tm_now.tm_sec - l; //mktime()偶尔会出错 不用mktime
+  uint32_t t1;
   while(!feof(fp)) {
 /* 
 Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
 */
-    rc = fscanf(fp, "%30s %30s %d %s %hd %30s dnsmasq%s",
-	skip, month, &tm.tm_mday, to, &year, skip, proc);
-    if(rc != 7) {
-      fgets(buf,sizeof(buf),fp); //清理剩余部分
+    rc = fscanf(fp, "%30s %30s %d %02d:%02d:%02d %hd %30s dnsmasq%s",
+	skip, month, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &year, skip, proc);
+    if(rc != 9) {
       continue;
     }
-    
-     tm.tm_year = year - 1900;
-     snprintf(buf, sizeof(buf), "%s %02d %s %d", month, tm.tm_mday, to, year);
-     strptime(buf, "%b %d %H:%M:%S %Y", &tm);
-     if(mktime(&tm) + l < time(NULL)) continue; //长于10分钟之前的访问， 就跳过
+     t1 = (tm.tm_hour * 60 + tm.tm_min) * 60 + tm.tm_sec;
+     if(tm.tm_mday == tm_now.tm_mday) t1 += 24 * 3600;
+     if(t1 < t0)  {
+       continue; //长于10分钟之前的访问， 就跳过
+     }
      
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
@@ -158,13 +161,12 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     fgets(buf,sizeof(buf),fp); //清理剩余部分
     if(rc != 13) continue; //行不完整跳过
     if(sip[0] == 127) continue; //申请地址是本机127.0.0.1， 跳过
-    if(strcmp(proc, "cached") == 0) continue; //cached的行不显示
     if(strcmp(to, "is") != 0) continue; //只显示 is 行
     if(strcmp(domain, "localhost") == 0) continue; //要解析的域名是 localhost 跳过
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
-    strncpy(domain0, domain, sizeof(domain));
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
     if(is_exists(sip32, domain)) continue;
+    strncpy(domain0, domain, sizeof(domain));
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
     ipname = sipstr;
     bool is_route = false;
@@ -196,7 +198,6 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
              skip,
              ipname,
              domain);
-           break;
   }
   fclose(fp);
   return true;
