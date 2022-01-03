@@ -44,6 +44,7 @@ void load_ips() {
   uint8_t ip[4];
   uint16_t count = 0;
   memset(ips,0,sizeof(ips));
+  system("ip ru list |grep 290 >/tmp/dnsmasq_rule.list");
   fp=fopen("/tmp/dnsmasq_rule.list","r");
   if(fp) {
     while(!feof(fp)) {
@@ -60,6 +61,7 @@ void load_ips() {
     count++;
     }
   fclose(fp);
+  remove("/tmp/dnsmasq_rule.list");
   }
 }
 char exists[2048 * 2];
