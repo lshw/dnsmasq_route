@@ -162,7 +162,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     if(rc != 13) continue; //行不完整跳过
     if(sip[0] == 127) continue; //申请地址是本机127.0.0.1， 跳过
     if(strcmp(to, "is") != 0) continue; //只显示 is 行
-    if(strcmp(proc, "cached") != 0) continue; //不显示 cache 行
+  //  if(strcmp(proc, "cached") != 0) continue; //不显示 cache 行
     if(strcmp(domain, "localhost") == 0) continue; //要解析的域名是 localhost 跳过
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
@@ -192,13 +192,15 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        if(year < 30) {
           memset(skip, ' ', 30 - year);
        }
-       printf("%02d:%02d:%02d %s%s \t%s\n",
+       printf("%02d:%02d:%02d %s%s \t%s\t%d.%d.%d.%d\n",
              tm.tm_hour,
              tm.tm_min,
              tm.tm_sec,
              skip,
              ipname,
-             domain);
+             domain,
+             dip[0], dip[1], dip[2], dip[3]
+      );
   }
   fclose(fp);
   return true;
