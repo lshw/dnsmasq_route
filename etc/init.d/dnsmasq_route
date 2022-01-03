@@ -42,7 +42,7 @@ start(){
 }
 
 stop(){
-	kill $( ps |grep  -e "dnsmasq_route -d" -e dnsmasq_route.sh -e 128129 |awk '{printf " " $1}' >/dev/null )
+	kill $( ps |grep  -e "dnsmasq_route -d" -e dnsmasq_route.sh -e 128129 |awk '{printf " " $1}' ) >/dev/null
 	echo "dnsmasq_route has stopped."
 }
 
