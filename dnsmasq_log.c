@@ -162,6 +162,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     if(rc != 13) continue; //行不完整跳过
     if(sip[0] == 127) continue; //申请地址是本机127.0.0.1， 跳过
     if(strcmp(to, "is") != 0) continue; //只显示 is 行
+    if(strcmp(proc, "cached") != 0) continue; //不显示 cache 行
     if(strcmp(domain, "localhost") == 0) continue; //要解析的域名是 localhost 跳过
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
