@@ -13,14 +13,11 @@ s.anonymous = true
 
 enable = s:option(Flag, "enabled", "启用")
 
-s:option(Value, "dns_server", "分流dns服务器")
-s:option(Value, "ipv6_disable", "禁用ipv6解析地址")
-s:option(Value, "remote_ip", "分流路由地址")
+s:option(Value, "dns_server", "分流dns服务器","下面的分流域名表所列域名，要到上面这个dns服务器进行解析")
+s:option(Flag, "ipv6_disable", "禁用ipv6解析地址","IPV6公网地址，不能修改路由，所以最好禁用").rmempty=false
+s:option(Value, "remote_ip", "分流路由地址","解析回来的ip为目的地址的流量，将被送到上面这个地址")
 
---function dns_server.cfgvalue(
-
-
-config = s:option(Value, "config", "分流域名表", "", "")
+config = s:option(Value, "config", "分流域名表", "需要分流的域名清单，最好是二级域名")
 config.template = "cbi/tvalue"
 config.rows = 10
 config.wrap = "off"

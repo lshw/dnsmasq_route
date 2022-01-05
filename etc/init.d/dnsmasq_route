@@ -38,7 +38,7 @@ start(){
         while read hostname note
         do
         	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
-                if [ "a$ipv6_disable" == "a1" ] ; then
+                if [ "a$ipv6_disable" != "a0" ] ; then
         	  echo "address=/$hostname/::" >> /tmp/dnsmasq.d/dnsmasq_route.conf
                 fi
         done
