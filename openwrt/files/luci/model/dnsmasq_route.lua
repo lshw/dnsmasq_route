@@ -14,6 +14,7 @@ s.anonymous = true
 enable = s:option(Flag, "enabled", "启用")
 
 s:option(Value, "dns_server", "分流dns服务器")
+s:option(Value, "ipv6_disable", "禁用ipv6解析地址")
 s:option(Value, "remote_ip", "分流路由地址")
 
 --function dns_server.cfgvalue(

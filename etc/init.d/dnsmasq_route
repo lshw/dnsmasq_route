@@ -4,6 +4,7 @@ START=99
 
 remote_ip=$(uci get dnsmasq_route.config.remote_ip)
 dns_server=$(uci get dnsmasq_route.config.dns_server)
+ipv6_disable=$(uci get dnsmasq_route.config.ipv6_disable)
 
 start(){
         if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
@@ -37,6 +38,9 @@ start(){
         while read hostname note
         do
         	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
+                if [ "a$ipv6_disable" == "a1" ] ; then
+        	  echo "address=/$hostname/::" >> /tmp/dnsmasq.d/dnsmasq_route.conf
+                fi
         done
         /etc/init.d/dnsmasq restart
 }
