@@ -51,6 +51,16 @@ endef
 
 define Package/dnsmasq_route/postinst
 #!/bin/sh
+log_file=$$( uci get system.cfg01e48a.log_file )
+if [ "a$${log_name}" = "a" ] ; then
+uci set system.cfg01e48a.log_file="/tmp/syslog"
+/etc/init.d/log restart
+fi
+
+uci set dhcp.cfg01411c.logqueries='1'
+uci set dhcp.cfg01411c.quietdhcp='1'
+uci commit
+
 /etc/init.d/dnsmasq_route enable
 /etc/init.d/dnsmasq_route start
 exit 0
