@@ -111,8 +111,12 @@ int main(int argc, char * argv[])
   load_ips();
   bool f1 = log_scan("/tmp/syslog.old");
   bool f2 = log_scan("/tmp/syslog");
+  if(!f1 && !f2) {
+    f1 = log_scan("/tmp/system.log.old");
+    f2 = log_scan("/tmp/system.log");
   if(!f1 && !f2)
-  printf("/tmp/syslog  not find");
+    printf("/tmp/syslog or /tmp/system.log  not find");
+  }
   return 0;
 }
 
