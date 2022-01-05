@@ -180,7 +180,8 @@ void ip_rule(const char * dip) {
   uint32_t dip32;
   time_t time0;
   struct tm tm;
-  if(sscanf(dip,"%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
+  if(sscanf(dip, "%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
+  ip[3] = 0; //目标使用c段
   time(&time0);
   localtime_r(&time0, &tm);
   uint16_t count = 0;
@@ -205,7 +206,7 @@ void ip_rule(const char * dip) {
     if(rules[count].ip == 0) break;
     if(rules[count].ip == dip32) return; //已经存在， 不需要添加
   }
-  snprintf(buf,sizeof(buf),"ip rule add to %s lookup %s pref %d", dip, table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf,sizeof(buf),"ip rule add to %d.%d.%d.0/24 lookup %s pref %d", ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
