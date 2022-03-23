@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.20220312
-PKG_RELEASE:=V1.0
+PKG_VERSION:=0.20220323
+PKG_RELEASE:=V1.1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
@@ -32,7 +32,7 @@ define Package/dnsmasq_route
 	CATEGORY:=Network
 	TITLE:=dnsmasq_route
 	URL:=https://github.com/lshw/dnsmasq_route
-	DEPENDS:= +libstdcpp +dnsmasq +coreutils-nohup
+	DEPENDS:= +libstdcpp +coreutils-nohup
 endef
 
 define Package/dnsmasq_route/description
