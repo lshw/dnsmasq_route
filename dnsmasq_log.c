@@ -49,8 +49,7 @@ void load_ips() {
   if(fp) {
     while(!feof(fp)) {
     /*
-29010:	from all to 120.121.121.140 lookup 107
-29010:	from all to 120.121.121.141 lookup 107
+29010:	from all to 120.121.121.0 lookup 107
      */
     rc = fscanf(fp,"%10s %10s %10s %10s %hhd.%hhd.%hhd.%hhd", skip, skip, skip, skip, &ip[0],&ip[1],&ip[2],&ip[3]);
     fgets(skip, sizeof(skip), fp);
@@ -187,7 +186,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
       strcpy(domain, cname);
     }
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
-    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
+    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) ; //忽略sip[3],因为目前目标地址改成了C网段
     if(is_exists(sip32, domain)) continue;
     strncpy(domain0, domain, sizeof(domain));
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
