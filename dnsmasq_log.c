@@ -186,7 +186,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
       strcpy(domain, cname);
     }
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
-    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) ; //忽略sip[3],因为目前目标地址改成了C网段
+    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
     if(is_exists(sip32, domain)) continue;
     strncpy(domain0, domain, sizeof(domain));
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
@@ -197,7 +197,7 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
         ipname = hostnames[l].name;
         break;
       }
-    dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) | dip[3];
+    dip32 = (uint32_t) (dip[0] << 24) | (dip[1] << 16) | (dip[2] << 8) ; //目标地址改成C网段
        is_route = false;
        for(uint16_t i = 0; i< 2048; i ++) { //检查是否在 已经转路由的ip列表里面，有的话， 就不显示
          if(ips[i] == 0) break; //ips结束
