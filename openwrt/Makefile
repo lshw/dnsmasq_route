@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.20220702
-PKG_RELEASE:=V1.3
+PKG_VERSION:=0.20221220
+PKG_RELEASE:=V1.4
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git

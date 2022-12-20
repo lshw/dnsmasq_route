@@ -201,11 +201,30 @@ void ip_rule(const char * dip) {
       }
     }
   }
+#define ipv4_u32(a, b, c, d) ((uint32_t)(a << 24) | (b << 16) | (c << 8) | d)
   dip32 = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
   for(count = 0; count < RULES_SIZE; count++) {
     if(rules[count].ip == 0) break;
     if(rules[count].ip == dip32) return; //已经存在， 不需要添加
   }
+  if(ipv4_u32(0, 0, 0, 0) >= dip32 && ipv4_u32(0, 255, 255, 255) <= dip32) return; /* 0.0.0.0/8 */
+  if(ipv4_u32(10, 0, 0, 0) >= dip32 && ipv4_u32(10, 255, 255, 255) <= dip32) return; /* 10.0.0.0/8 */
+  if(ipv4_u32(100, 64, 0, 0) >= dip32 && ipv4_u32(100, 127, 255, 255) <= dip32) return; /* 100.64.0.0/10 */
+  if(ipv4_u32(127, 0, 0, 0) >= dip32 && ipv4_u32(127, 255, 255, 255) <= dip32) return; /* 127.0.0.0/8 */
+  if(ipv4_u32(169, 254, 0, 0) >= dip32 && ipv4_u32(169, 254, 255, 255) <= dip32) return; /* 169.254.0.0/16 */
+  if(ipv4_u32(172, 16, 0, 0) >= dip32 && ipv4_u32(172, 32, 255, 255) <= dip32) return; /* 172.16.0.0/12 */
+  if(ipv4_u32(192, 0, 0, 0) >= dip32 && ipv4_u32(192, 0, 0, 255) <= dip32) return; /* 192.0.0.0/24 */
+  if(ipv4_u32(192, 0, 2, 0) >= dip32 && ipv4_u32(192, 0, 2, 255) <= dip32) return; /* 192.0.2.0/24 */
+  if(ipv4_u32(192, 88, 99, 0) >= dip32 && ipv4_u32(192, 88, 99, 255) <= dip32) return; /* 192.88.99.0/24 */
+  if(ipv4_u32(192, 168, 0, 0) >= dip32 && ipv4_u32(192, 168, 255, 255) <= dip32) return; /* 192.168.0.0/16 */
+  if(ipv4_u32(198, 18, 0, 0) >= dip32 && ipv4_u32(198, 19, 255, 255) <= dip32) return; /* 198.18.0.0/15 */
+  if(ipv4_u32(198, 51, 100, 0) >= dip32 && ipv4_u32(198, 51, 100, 255) <= dip32) return; /* 198.51.100.0/24 */
+  if(ipv4_u32(203, 0, 113, 0) >= dip32 && ipv4_u32(203, 0, 113, 255) <= dip32) return; /* 203.0.113.0/24 */
+  if(ipv4_u32(224, 0, 0, 0) >= dip32 && ipv4_u32(239, 255, 255, 255) <= dip32) return; /* 224.0.0.0/4 */
+  if(ipv4_u32(233, 252, 0, 0) >= dip32 && ipv4_u32(233, 252, 0, 255) <= dip32) return; /* 233.252.0.0/24 */
+  // if(ipv4_u32(240, 0, 0, 0) >= dip32 && ipv4_u32(255, 255, 255, 255) <= dip32) return; /* 240.0.0.0/4 */
+  if(ipv4_u32(255, 255, 255, 255) == dip32) return; /* 255.255.255.255/32 */
+
   snprintf(buf,sizeof(buf),"ip rule add to %d.%d.%d.0/24 lookup %s pref %d", ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
