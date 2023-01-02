@@ -226,7 +226,7 @@ void ip_rule(const char * dip) {
     if(rules[count].ip == 0) break;
     if(rules[count].ip == dip32) return; //已经存在， 不需要添加
   }
-  for(uint16_t i = 0; i < sizeof(localnet); i = i + 2) {
+  for(uint16_t i = 0; i < sizeof(localnet) / sizeof(uint32_t); i = i + 2) {
     if(localnet[i] <= dip32 && localnet[i + 1] >= dip32) return; /* 忽略内网地址 */
   }
   snprintf(buf,sizeof(buf),"ip rule add to %d.%d.%d.0/24 lookup %s pref %d", ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
