@@ -33,7 +33,7 @@ void ip_rule(const char * dip);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 extern char * optarg;
-char * buf0, * remote_ip, * dns_server, skip[100], *table;
+char * buf0, * remote_ip, * dns_server, skip[100], *table, from_net[sizeof("from 192.168.123.123/24 ")];
 #define RULES_SIZE 4096
 struct rules {
 uint8_t hour;
@@ -73,10 +73,12 @@ bool in_key(const uint32_t pid) { //看回应的pid，是否在转发到8.8.4.4�
 
 void update_rule_list() {
   FILE *dfp;
+  char buf[1024];
   uint16_t count = 0;
   uint32_t metric;
   uint8_t ip[4];
-  system("ip rule list |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list"); //初始化已经清单
+  snprintf(buf, sizeof(buf),"ip rule list %s |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list", from_net); //初始化已经存在的清单
+  system(buf);
   memset(rules, 0, sizeof(rules));
   dfp = fopen("/tmp/dnsmasq_rule.list", "r");
   if(!dfp) return;
@@ -102,7 +104,9 @@ int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  while((opt = getopt(argc, argv, "cChHvVd:r:t:")) != -1) {
+  uint8_t ip[4], netmark;
+  memset(from_net, 0, sizeof(from_net));
+  while((opt = getopt(argc, argv, "cChHvVd:r:s:t:")) != -1) {
     switch(opt) {
       case 'c':
       case 'C':
@@ -124,13 +128,18 @@ int main(int argc, char * argv[])
       case 'r':
         remote_ip = optarg;
         break;
+      case 's':
+        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &netmark) == 5 && netmark <= 32) {
+          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], netmark);
+        }
+        break;
       case 't':
         table = optarg;
         break;
     }
   }
   if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
-    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -s 192.168.0.0/24 -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -s source net\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   if(remote_ip == NULL && dns_server != NULL)
@@ -171,10 +180,8 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[12670]:  177527 192.168.12.13/40934 forwarded www.google.com to 8.8.4.4
        dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
        dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
-    scanf("%d %99s %30s %99s %99s",
-	&pid, sip, proc, domain, to);
-    fgetc(stdin);
-    fgets(dip,sizeof(dip),stdin);
+    rc = scanf("%s %d %99s %30s %99s %99s %99s",
+	skip, &pid, sip, proc, domain, to, dip);
     buf0 = strstr(dip,"\n");
     if(buf0)
       buf0[0] = 0;
@@ -214,7 +221,7 @@ void ip_rule(const char * dip) {
           rules[count] = rules[i + 1];
         }
         //删除路由
-	snprintf(buf,sizeof(buf), "ip rule del to %s/32", dest);
+	snprintf(buf,sizeof(buf), "ip rule del %s to %s/32", from_net, dest);
 	if(v)
 	  printf("%s\r\n",buf);
 	system(buf);
@@ -229,7 +236,7 @@ void ip_rule(const char * dip) {
   for(uint16_t i = 0; i < sizeof(localnet) / sizeof(uint32_t); i = i + 2) {
     if(localnet[i] <= dip32 && localnet[i + 1] >= dip32) return; /* 忽略内网地址 */
   }
-  snprintf(buf,sizeof(buf),"ip rule add to %d.%d.%d.0/24 lookup %s pref %d", ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf,sizeof(buf),"ip rule add %s to %d.%d.%d.0/24 lookup %s pref %d", from_net, ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
