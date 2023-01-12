@@ -165,13 +165,17 @@ void log_scan() {
 /*
 Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
 */
-    rc = scanf("%30s %30s %30s %30s %30s %30s %30s",
-	skip, skip, skip, skip, skip, skip, proc);
+
+    for( uint8_t i = 0; i < 10; i++) {
+      rc = scanf("%99s",buf);
+      if(rc != 1)break;
+      buf[7]=0;
+      if(strcmp(buf,"dnsmasq") == 0){
+	break;
+      }else
+	continue;
+    }
     if(rc <= 0) continue;
-    if(strncmp(proc,"dnsmasq[",sizeof("dnsmasq[")-1) != 0) {
-      fgets(buf,sizeof(buf),stdin); //清理剩余部分
-      continue;
-     }
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
        dnsmasq[12670]:  177526 192.168.12.13/36330 forwarded www.google.com to 8.8.4.4
