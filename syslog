@@ -1,0 +1,5 @@
+Jan 12 12:00:35 route dnsmasq[1439]: 542134 192.168.3.3/42387 query[A] www.google.com from 192.168.3.3
+Jan 12 12:00:35 route dnsmasq[1439]: 542134 192.168.3.3/42387 forwarded www.google.com to 8.8.4.4
+Jan 12 12:00:35 route dnsmasq[1439]: 542134 192.168.3.3/42387 reply www.google.com is 142.251.41.4
+Jan 12 12:01:55 route dnsmasq[1439]: 542537 192.168.2.4/54003 query[A] www.google.com from 192.168.2.4
+Jan 12 12:01:55 route dnsmasq[1439]: 542537 192.168.2.4/54003 cached www.google.com is 142.251.41.4
