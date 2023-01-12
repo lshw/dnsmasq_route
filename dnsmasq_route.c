@@ -39,6 +39,7 @@ struct rules {
 uint8_t hour;
 uint32_t ip;
 } rules[RULES_SIZE];
+uint32_t skip_ipv4 = 0;//需要跳过的某个目标ip/24, 用-n设置,用来防止流量循环
 bool v = false;
 bool route_clean = false;
 void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
@@ -80,6 +81,10 @@ void update_rule_list() {
   snprintf(buf, sizeof(buf),"ip rule list %s |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list", from_net); //初始化已经存在的清单
   system(buf);
   memset(rules, 0, sizeof(rules));
+  if(skip_ipv4 != 0) {
+    rules[0].ip = skip_ipv4;
+    count++;
+  }
   dfp = fopen("/tmp/dnsmasq_rule.list", "r");
   if(!dfp) return;
   while(!feof(dfp)) {
@@ -106,7 +111,7 @@ int main(int argc, char * argv[])
   bool h = false;
   uint8_t ip[4], netmark;
   memset(from_net, 0, sizeof(from_net));
-  while((opt = getopt(argc, argv, "cChHvVd:r:s:t:")) != -1) {
+  while((opt = getopt(argc, argv, "cChHvVd:r:n:s:t:")) != -1) {
     switch(opt) {
       case 'c':
       case 'C':
@@ -128,6 +133,11 @@ int main(int argc, char * argv[])
       case 'r':
         remote_ip = optarg;
         break;
+      case 'n':
+        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3]) == 4) {
+          skip_ipv4 = ipv4_u32(ip[0], ip[1], ip[2], 0);
+        }
+        break;
       case 's':
         if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &netmark) == 5 && netmark <= 32) {
           snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], netmark);
@@ -139,7 +149,7 @@ int main(int argc, char * argv[])
     }
   }
   if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
-    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -s 192.168.0.0/24 -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -s source net\r\n -r remote route ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -s 192.168.0.0/24 -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -s source net\r\n -r remote route ip\r\n-n skip target ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   if(remote_ip == NULL && dns_server != NULL)
