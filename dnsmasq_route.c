@@ -92,7 +92,7 @@ void update_rule_list() {
 29010:	from all to 120.121.121.140 lookup 107
 29010:	from all to 120.121.121.141 lookup 107
      */
-    int rc = fscanf(dfp,"%d %10s %10s %10s %hhd.%hhd.%hhd.%hhd", &metric, skip, skip, skip, &ip[0], &ip[1], &ip[2], &ip[3]);
+    int rc = fscanf(dfp,"%d %99s %99s %99s %hhd.%hhd.%hhd.%hhd", &metric, skip, skip, skip, &ip[0], &ip[1], &ip[2], &ip[3]);
     fgets(skip, sizeof(skip), dfp);
     if(rc != 8) continue;
     rules[count].hour = metric % 100;
