@@ -39,7 +39,6 @@ struct rules {
 uint8_t hour;
 uint32_t ip;
 } rules[RULES_SIZE];
-uint32_t skip_ipv4 = 0;//需要跳过的某个目标ip/24, 用-n设置,用来防止流量循环
 bool v = false;
 bool route_clean = false;
 void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
@@ -80,13 +79,12 @@ void update_rule_list() {
   uint8_t ip[4];
   snprintf(buf, sizeof(buf),"ip rule list %s |grep ^290 |tr -d ':' >/tmp/dnsmasq_rule.list", from_net); //初始化已经存在的清单
   system(buf);
-  memset(rules, 0, sizeof(rules));
-  if(skip_ipv4 != 0) {
-    rules[0].ip = skip_ipv4;
-    count++;
-  }
   dfp = fopen("/tmp/dnsmasq_rule.list", "r");
   if(!dfp) return;
+  for(count = 0; count < RULES_SIZE; count++){
+    if(rules[count].ip == 0)
+      break;
+  }
   while(!feof(dfp)) {
     /*
 29010:	from all to 120.121.121.140 lookup 107
@@ -110,6 +108,7 @@ int main(int argc, char * argv[])
   int opt = 0;
   bool h = false;
   uint8_t ip[4], netmark;
+  uint8_t count = 0;
   memset(from_net, 0, sizeof(from_net));
   while((opt = getopt(argc, argv, "cChHvVd:r:n:s:t:")) != -1) {
     switch(opt) {
@@ -135,7 +134,12 @@ int main(int argc, char * argv[])
         break;
       case 'n':
         if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3]) == 4) {
-          skip_ipv4 = ipv4_u32(ip[0], ip[1], ip[2], 0);
+          rules[count].ip = ipv4_u32(ip[0], ip[1], ip[2], 0); //跳过这些目标地址
+          if(rules[count].ip != 0) {
+            if(v) printf("skip ip:%d.%d.%d.0/24\r\n", ip[0], ip[1], ip[2]);
+            rules[count].hour = 25; //不会被清理
+            count++;
+          }
         }
         break;
       case 's':
