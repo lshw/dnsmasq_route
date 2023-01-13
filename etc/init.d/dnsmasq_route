@@ -26,7 +26,9 @@ start(){
         if [ "`ps |grep "dnsmasq_route -d" |grep -v -e dnsmasq_route.sh -e grep -e init.d`" ] ;then
 		echo "dnsmasq_route has already started."
         else
-		nohup dnsmasq_route.sh $dns_server $remote_ip $table >/dev/null 2>/dev/null &
+                sip=$(uci get network.lan.ipaddr)
+                netmask=$(uci get network.lan.netmask)
+		nohup dnsmasq_route.sh $dns_server $remote_ip $table "-s $sip/$netmask">/dev/null 2>/dev/null &
 		echo "dnsmasq_route has started."
 	fi
 	#table
@@ -56,3 +58,4 @@ restart(){
 	start
 	echo "dnsmasq_route has restarted."
 }
+

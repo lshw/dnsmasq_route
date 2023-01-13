@@ -23,4 +23,4 @@ if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
  ip route add default via $remote_ip table $table
 fi
 
-logread -l 2000 -f -S 128129 -e dnsmasq |dnsmasq_route -d $dns_server -r $remote_ip -t $table
+logread -l 2000 -f -S 128129 -e dnsmasq |dnsmasq_route -d $dns_server -r $remote_ip -t $table $4
