@@ -198,8 +198,8 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[12670]:  177527 192.168.12.13/40934 forwarded www.google.com to 8.8.4.4
        dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
        dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101     */
-    rc = scanf("%s %d %99s %30s %99s %99s %99s",
-	skip, &pid, sip, proc, domain, to, dip);
+    rc = scanf("%d %99s %30s %99s %99s %99s",
+	&pid, sip, proc, domain, to, dip);
     buf0 = strstr(dip,"\n");
     if(buf0)
       buf0[0] = 0;
