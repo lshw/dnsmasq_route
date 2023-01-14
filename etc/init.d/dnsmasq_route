@@ -2,58 +2,27 @@
 
 START=99
 
-remote_ip=$(uci get dnsmasq_route.config.remote_ip)
-dns_server=$(uci get dnsmasq_route.config.dns_server)
-ipv6_disable=$(uci get dnsmasq_route.config.ipv6_disable)
-localnet_only=$(uci get dnsmasq_route.config.localnet_only)
-
-start(){
-        if [ "`grep '^107' /etc/iproute2/rt_tables`" ] ; then
-        	table=106
-        else
-        	table=107
-	fi
-
-        # 29021:	from all to 52.36.200.214 lookup 107
-        #清理所有分流路由
-        ip ru list table $table |while read prefix from sip to dip lookup
-        do
-          ip rule del from $sip to $dip lookup $table
-        done
-
-	if ! [ "`ip route list default table $table |grep $remote_ip`" ] ; then
-		ip route add default via $remote_ip table $table
-	fi
+start()
+{
         if [ "`ps |grep "dnsmasq_route -d" |grep -v -e dnsmasq_route.sh -e grep -e init.d`" ] ;then
 		echo "dnsmasq_route has already started."
         else
-                if [ "a$localnet_only" = "a1" ] ; then
-echo ok
-                        sip=$(uci get network.lan.ipaddr)
-                        netmask=$(uci get network.lan.netmask)
-                        from_localnet_only="-s $sip/$netmask"
-                fi
-                nohup dnsmasq_route.sh $dns_server $remote_ip $table "$from_localnet_only" >/dev/null 2>/dev/null &
+                dnsmasq_route.sh &
                 echo "dnsmasq_route has started."
         fi
-        #table
-        if ! [ -e /etc/dnsmasq_route.ini ] ; then
-        	echo github.com > /etc/dnsmasq_route.ini
-	fi
-        echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq.d/dnsmasq_route.conf
-        cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
-        while read hostname note
-        do
-        	echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_route.conf
-                if [ "a$ipv6_disable" != "a0" ] ; then
-        	  echo "address=/$hostname/::" >> /tmp/dnsmasq.d/dnsmasq_route.conf
-                fi
-        done
-        /etc/init.d/dnsmasq restart
 }
 
 stop(){
-	kill $( ps |grep  -e "dnsmasq_route -d" -e dnsmasq_route.sh -e 128129 |awk '{printf " " $1}' ) >/dev/null
+        ps |grep -e d[n]smasq_route -e l[o]gread |grep -v -e rc.common -e $$ |while read pid a
+        do
+                kill $pid
+        done
+        # 29021:	from all to 52.36.200.214 lookup 107
+        #清理所有分流路由
+        ip ru list |grep ^290 |while read prefix from sip to dip lookup
+        do
+                ip rule del from $sip to $dip lookup $table
+        done
 	echo "dnsmasq_route has stopped."
 }
 
