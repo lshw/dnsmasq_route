@@ -160,9 +160,13 @@ int main(int argc, char * argv[])
     remote_ip = dns_server;
   if(remote_ip != NULL && dns_server == NULL)
     dns_server = remote_ip;
-
-  if(table != NULL)  //rule方式
+  if(table != NULL)  {//rule方式
+    snprintf(skip, sizeof(skip), "ip ro add default via %s table %s metric 100 >/dev/null 2>/dev/null", remote_ip, table);
+    if(v)
+      printf(skip);
+    system(skip);
     update_rule_list();
+  }
 
   memset(pids,0,sizeof(pids));
   while(1){
