@@ -13,15 +13,16 @@ start()
 }
 
 stop(){
-        ps |grep -e d[n]smasq_route -e l[o]gread |grep -v -e rc.common -e $$ |while read pid a
+        ps |grep -e dnsmasq_route.sh -e "dnsmasq_route -d" -e "logread -l" |grep -v -e grep -e rc.common -e "opkg " -e $$ |while read pid a
         do
                 kill $pid
         done
+
         # 29021:	from all to 52.36.200.214 lookup 107
         #清理所有分流路由
         ip ru list |grep ^290 |while read prefix from sip to dip lookup
         do
-                ip rule del from $sip to $dip lookup $table
+                ip rule del from $sip to $dip
         done
 	echo "dnsmasq_route has stopped."
 }
