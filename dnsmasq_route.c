@@ -33,7 +33,7 @@ void ip_rule(const char * dip);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 extern char * optarg;
-char * buf0, * remote_ip, * dns_server, skip[100], *table, from_net[sizeof("from 192.168.123.123/24 ")];
+char * buf0, * remote_ip, * dns_server, skip[100], *table, from_net[sizeof("from 192.168.123.123/255.255.255.255 ")];
 #define RULES_SIZE 4096
 struct rules {
 uint8_t hour;
@@ -99,7 +99,7 @@ void update_rule_list() {
   }
   fclose(dfp);
   if(v)
-    printf("load ip rule %d\r\n",count);
+    printf("\r\nload ip rule %d\r\n",count);
   remove("/tmp/dnsmasq_rule.list");
 }
 
@@ -107,7 +107,7 @@ int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  uint8_t ip[4], netmark;
+  uint8_t ip[8];
   uint8_t count = 0;
   memset(from_net, 0, sizeof(from_net));
   while((opt = getopt(argc, argv, "cChHvVd:r:n:s:t:")) != -1) {
@@ -143,8 +143,10 @@ int main(int argc, char * argv[])
         }
         break;
       case 's':
-        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &netmark) == 5 && netmark <= 32) {
-          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], netmark);
+        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4]) == 5 && ip[4] <= 32) {
+          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], ip[4]);
+        } else if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4], &ip[5], &ip[6], &ip[7]) == 8) {
+          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d.%d.%d.%d",ip[0], ip[1], ip[2], ip[3], ip[4], ip[5], ip[6], ip[7]);
         }
         break;
       case 't':
@@ -153,7 +155,7 @@ int main(int argc, char * argv[])
     }
   }
   if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
-    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -s 192.168.0.0/24 -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -s source net\r\n -r remote route ip\r\n-n skip target ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\nUsage:\r\nlogread -f -S 128000 |\\\r\n%s -d dns_server -s 192.168.0.0/24 -r remote_ip -t 107\r\n\r\n -c 23 hours clean route\r\n -d remote dns server\r\n -s sourceip/netmask\r\n -r remote route ip\r\n -n skip target ip\r\n -t route table name\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
     return 1;
   }
   if(remote_ip == NULL && dns_server != NULL)
