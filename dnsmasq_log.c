@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #define __USE_XOPEN 1
 #include <time.h>
 #include <getopt.h>
@@ -13,7 +14,7 @@
 bool log_scan(const char * filename);
 bool v = false;
 uint32_t ips[2048];
-char skip[100];
+char skip[200];
 extern char * optarg;
 struct hostname {
   uint32_t ip;
@@ -79,12 +80,13 @@ bool is_exists(const uint32_t ip, char * host) {
   return false;
 }
 extern char *  optarg;
+char show_ip_only[sizeof("|grep 192.168.123.123 ")] = {0};
 uint16_t l = 3600;
 int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  while((opt = getopt(argc, argv, "l:L:hHvVd:")) != -1) {
+  while((opt = getopt(argc, argv, "l:L:hs:HvVd:")) != -1) {
     switch(opt) {
       case 'h':
       case 'H': //帮助信息
@@ -97,25 +99,31 @@ int main(int argc, char * argv[])
       case 'v':
         v = true;
         break;
+      case 's':
+        snprintf(show_ip_only, sizeof(show_ip_only), "|grep %s", optarg);
+        break;
       case 'V':
         printf("Version:%s\n",GIT_VER);
         break;
     }
   }
   if( h ) {
-    printf("\r\nUsage:\r\n%s -l 600 [-v] [-V]\r\n\r\n -l 要显示的时长秒数\r\n -v verbose mode\r\n -V display version\r\n\r\n",argv[0]);
+    printf("\r\n"
+           "Usage:\r\n"
+           "%s -l 600 [-s 192.168.1.2] [-v] [-V]\r\n\r\n"
+           " -l 要显示的时长秒数\r\n"
+           " -s 只显示指定的ip\r\n"
+           " -v verbose mode\r\n"
+           " -V display version\r\n\r\n",
+           argv[0]);
     return 1;
   }
   load_hostname();
   load_ips();
-  bool f1 = log_scan("/tmp/syslog.old");
-  bool f2 = log_scan("/tmp/syslog");
-  if(!f1 && !f2) {
-    f1 = log_scan("/tmp/system.log.old");
-    f2 = log_scan("/tmp/system.log");
-  if(!f1 && !f2)
-    printf("/tmp/syslog or /tmp/system.log  not find");
-  }
+  snprintf(skip, sizeof(skip), "logread -l 10000 -e dnsmasq -S 80000 |grep ' is ' %s >/tmp/dnsmasq.log",show_ip_only);
+  system(skip);
+  log_scan("/tmp/dnsmasq.log");
+  unlink("/tmp/dnsmasq.log");
   return 0;
 }
 
