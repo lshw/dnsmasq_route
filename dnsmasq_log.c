@@ -11,14 +11,13 @@
 #ifndef GIT_VER
 #define GIT_VER "test"
 #endif
-bool log_scan(const char * filename);
-bool v = false;
+void log_scan();
 uint32_t ips[2048];
 char skip[200];
 extern char * optarg;
 struct hostname {
   uint32_t ip;
-  char name[31];
+  char name[21];
 } hostnames[512];
 void load_hostname(){
   FILE * fp;
@@ -29,7 +28,7 @@ void load_hostname(){
  
   uint8_t ip[4];
   while(!feof(fp)) {
-    rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %30s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
+    rc = fscanf(fp,"%30s %30s %hhd.%hhd.%hhd.%hhd %20s %30s", skip, skip, &ip[0],&ip[1],&ip[2],&ip[3], hostnames[count].name, skip);
     fgets(skip,sizeof(skip),fp);
     if(rc != 8 || hostnames[count].name[0] == '*'){
       continue;
@@ -52,41 +51,23 @@ void load_ips() {
     /*
 29010:	from all to 120.121.121.0 lookup 107
      */
-    rc = fscanf(fp,"%10s %10s %10s %10s %hhd.%hhd.%hhd.%hhd", skip, skip, skip, skip, &ip[0],&ip[1],&ip[2],&ip[3]);
-    fgets(skip, sizeof(skip), fp);
-    if(rc != 8) continue;
-    ips[count]=(uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
-    if(v)
-      printf("%d.%d.%d.%d:%08x,%d\n", ip[0], ip[1], ip[2], ip[3], ips[count], count);
-    count++;
+      rc = fscanf(fp,"%10s %10s %10s %10s %hhd.%hhd.%hhd.%hhd", skip, skip, skip, skip, &ip[0],&ip[1],&ip[2],&ip[3]);
+      fgets(skip, sizeof(skip), fp);
+      if(rc != 8) continue;
+      ips[count] = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
+      count++;
     }
   fclose(fp);
   remove("/tmp/dnsmasq_rule.list");
   }
 }
-char exists[2048 * 2];
-bool is_exists(const uint32_t ip, char * host) {
-  char buf[100];
-
-  snprintf(buf, sizeof(buf), "%08x %s ", ip, host);
-  uint16_t len = strlen(buf);
-  if(strstr(exists, buf) != NULL)
-    return true; //已经存在
-  if(strlen(exists) + len > sizeof(exists)-1) {//溢出
-    memcpy(exists, &exists[sizeof(exists) / 2], sizeof(exists) / 2);
-  }
-  len = strlen(exists);
-  strncat(exists, buf, sizeof(exists) - 1);
-  return false;
-}
 extern char *  optarg;
-char show_ip_only[sizeof("|grep 192.168.123.123 ")] = {0};
-uint16_t l = 3600;
+int32_t l = 3600;
 int main(int argc, char * argv[])
 {
   int opt = 0;
   bool h = false;
-  while((opt = getopt(argc, argv, "l:L:hs:HvVd:")) != -1) {
+  while((opt = getopt(argc, argv, "l:L:hHvVd:")) != -1) {
     switch(opt) {
       case 'h':
       case 'H': //帮助信息
@@ -96,13 +77,8 @@ int main(int argc, char * argv[])
       case 'L': //要显示的最后秒数
         l = atoi(optarg);
         break;
-      case 'v':
-        v = true;
-        break;
-      case 's':
-        snprintf(show_ip_only, sizeof(show_ip_only), "|grep %s", optarg);
-        break;
       case 'V':
+      case 'v':
         printf("Version:%s\n",GIT_VER);
         break;
     }
@@ -110,24 +86,21 @@ int main(int argc, char * argv[])
   if( h ) {
     printf("\r\n"
            "Usage:\r\n"
-           "%s -l 600 [-s 192.168.1.2] [-v] [-V]\r\n\r\n"
+           "logread -l 10000 -e dnsmasq -S 80000 [|grep 192.168.1.2] |%s -l 600 [-s 192.168.1.2] [-v] [-V]\r\n\r\n"
+           "tail -n 10000 |grep dnsmasq [|grep 192.168.1.2] |%s -l 600 [-s 192.168.1.2] [-v] [-V]\r\n\r\n"
            " -l 要显示的时长秒数\r\n"
-           " -s 只显示指定的ip\r\n"
-           " -v verbose mode\r\n"
            " -V display version\r\n\r\n",
+           argv[0],
            argv[0]);
     return 1;
   }
   load_hostname();
   load_ips();
-  snprintf(skip, sizeof(skip), "logread -l 10000 -e dnsmasq -S 80000 |grep ' is ' %s >/tmp/dnsmasq.log",show_ip_only);
-  system(skip);
-  log_scan("/tmp/dnsmasq.log");
-  unlink("/tmp/dnsmasq.log");
+  log_scan();
   return 0;
 }
 
-bool log_scan(const char * filename) {
+void log_scan() {
   char buf[300],proc[31],domain[100],to[100],domain0[100], cname[100];
   int rc;
   uint8_t sip[4];
@@ -140,27 +113,47 @@ bool log_scan(const char * filename) {
   struct tm tm, tm_now;
   char *ipname;
   ipname = sipstr;
-  FILE * fp = fopen(filename, "r");
-  if(!fp)
-    return false;
   time_t now_t=time(NULL);
   localtime_r(&now_t, &tm_now);
-  uint32_t t0 = ((24 + tm_now.tm_hour) * 60 + tm_now.tm_min) * 60 + tm_now.tm_sec - l; //mktime()偶尔会出错 不用mktime
-  uint32_t t1;
-  while(!feof(fp)) {
+  int32_t t0 = ((tm_now.tm_mday * 24 + tm_now.tm_hour) * 60 + tm_now.tm_min) * 60 + tm_now.tm_sec; //mktime()偶尔会出错 不用mktime
+  int32_t t1;
+  while(1) {
 /* 
 Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
+Jan 15 04:01:51 route dnsmasq[1405]: 41330 192.168.3.3/56062 reply cloud.browser.360.cn is 112.64.200.152
 */
-    rc = fscanf(fp, "%30s %30s %d %02d:%02d:%02d %hd %30s dnsmasq%s",
-	skip, month, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &year, skip, proc);
-    if(rc != 9) {
-      continue;
+    while(1) {
+      rc = scanf("%30s",skip);
+      if(rc <= 0) return;
+      if((skip[0] & skip[1] & skip[3] & skip[4] & skip[6] & skip[7] & 0xf0) == 0x30
+      &&  skip[2] == ':'
+      &&  skip[5] == ':'
+      && ((skip[0] | skip[1] | skip[3] | skip[4] | skip[6] | skip[7] ) & 0xf0) == 0x30) {
+        sscanf(skip,"%02d:%02d:%02d",&tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+        for(uint8_t i = 0; i < 5; i++) {
+          rc = scanf("%30s",skip);
+          if(rc <= 0) return;
+          skip[7] = 0;
+          if(strcmp(skip, "dnsmasq") == 0) {
+            break;
+          }
+        }
+        if(strcmp(skip, "dnsmasq") == 0) {
+          break; //找到时间字段
+        }
+      } else if((strlen(skip) == 2) && (skip[0] <= '9') && (skip[0] >= '0') && (skip[1] <= '9') && (skip[1] >= '0')) {
+        sscanf(skip,"%d",&tm.tm_mday);
+      }
+      if(strcmp(skip, "dnsmasq") == 0) {
+        break; //找到时间字段
+      }
     }
-     t1 = (tm.tm_hour * 60 + tm.tm_min) * 60 + tm.tm_sec;
-     if(tm.tm_mday == tm_now.tm_mday) t1 += 24 * 3600;
-     if(t1 < t0)  {
-       continue; //长于10分钟之前的访问， 就跳过
-     }
+    if(tm.tm_mday > tm_now.tm_mday)
+      tm.tm_mday -= 30;
+    t1 = ((tm.tm_mday * 24 + tm.tm_hour) * 60 + tm.tm_min) * 60 + tm.tm_sec; //mktime()偶尔会出错 不用mktime
+    if(t0 > t1 + l)  {
+      continue; //长于10分钟之前的访问， 就跳过
+    }
      
     /*
        dnsmasq[12670]:  177526 192.168.12.13/36330 query[A] www.google.com from 192.168.12.13
@@ -168,17 +161,13 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
        dnsmasq[12670]:  177526 192.168.12.13/36330 reply www.google.com is 142.250.81.228
        dnsmasq[12670]:  177527 192.168.12.13/40934 query[AAAA] www.google.com from 192.168.12.13
        dnsmasq[12670]:  177527 192.168.12.13/40934 forwarded www.google.com to 8.8.4.4
-       dnsmasq[12670]:  177527 192.168.12.13/40934 reply www.google.com is 2607:f8b0:4006:817::2004
-       dnsmasq[2302]: 12173 192.168.12.1/55747 cached google.com is 173.194.219.101
-       dnsmasq[14028]: 380 192.168.12.4/37307 query[A] yt3.ggpht.com from 192.168.12.4
-       dnsmasq[14028]: 380 192.168.12.4/37307 forwarded yt3.ggpht.com to 219.141.136.10
        dnsmasq[14028]: 380 192.168.12.4/37307 reply yt3.ggpht.com is <CNAME>
        dnsmasq[14028]: 380 192.168.12.4/37307 reply photos-ugc.l.googleusercontent.com is 142.251.43.1
-*/
+    */
 
-    rc = fscanf(fp, "%d %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %30s",
+    rc = scanf("%d %hhd.%hhd.%hhd.%hhd/%s %30s %99s %99s %30s",
 	&pid, &sip[0], &sip[1], &sip[2], &sip[3], skip, proc, domain, to, skip);
-    fgets(buf,sizeof(buf),fp); //清理剩余部分
+    fgets(buf, sizeof(buf), stdin); //清理剩余部分
     if(rc != 10) continue; //行不完整跳过
     if(strcmp(skip,"<CNAME>")==0) {
       cname_pid = pid;
@@ -195,7 +184,6 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
     }
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
     uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
-    if(is_exists(sip32, domain)) continue;
     strncpy(domain0, domain, sizeof(domain));
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
     ipname = sipstr;
@@ -218,8 +206,8 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
 
        memset(skip, 0, sizeof(skip));
        year = strlen(ipname);
-       if(year < 30) {
-          memset(skip, ' ', 30 - year);
+       if(year < 21) {
+          memset(skip, ' ', 21 - year);
        }
        printf("%02d:%02d:%02d %s%s \t%s\t%d.%d.%d.%d\n",
              tm.tm_hour,
@@ -231,6 +219,4 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
              dip[0], dip[1], dip[2], dip[3]
       );
   }
-  fclose(fp);
-  return true;
 }
