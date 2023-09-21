@@ -49,9 +49,9 @@ void load_ips() {
   if(fp) {
     while(!feof(fp)) {
     /*
-29010:	from all to 120.121.121.0 lookup 107
+29010:	from 191.168.12.4/24 to 120.121.121.0/24 lookup 107
      */
-      rc = fscanf(fp,"%10s %10s %10s %10s %hhd.%hhd.%hhd.%hhd", skip, skip, skip, skip, &ip[0],&ip[1],&ip[2],&ip[3]);
+      rc = fscanf(fp,"%10s %10s %20s %10s %hhd.%hhd.%hhd.%hhd", skip, skip, skip, skip, &ip[0],&ip[1],&ip[2],&ip[3]);
       fgets(skip, sizeof(skip), fp);
       if(rc != 8) continue;
       ips[count] = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
