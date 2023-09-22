@@ -183,7 +183,7 @@ Jan 15 04:01:51 route dnsmasq[1405]: 41330 192.168.3.3/56062 reply cloud.browser
       strcpy(domain, cname);
     }
     if(strcmp(domain, domain0) == 0) continue;   //与上次域名不同
-    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8);
+    uint32_t sip32 = (uint32_t) (sip[0] << 24) | (sip[1] << 16) | (sip[2] << 8) | sip[3];
     strncpy(domain0, domain, sizeof(domain));
     snprintf(sipstr, sizeof(sipstr), "%d.%d.%d.%d", sip[0], sip[1] ,sip[2], sip[3]);
     ipname = sipstr;
