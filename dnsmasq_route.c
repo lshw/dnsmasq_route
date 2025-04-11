@@ -27,7 +27,7 @@ uint32_t localnet[]={ /* 内网地址表 */
   ipv4_u32(233, 252, 0, 0), ipv4_u32(233, 252, 0, 255), /* 233.252.0.0/24 */
   /* ipv4_u32(240, 0, 0, 0), ipv4_u32(255, 255, 255, 255), // 240.0.0.0/4 */
   ipv4_u32(255, 255, 255, 255), ipv4_u32(255, 255, 255, 255), /* 255.255.255.255/32 */
-  };
+};
 void log_scan();
 void ip_rule(const char * dip);
 #define PID_SIZE 20
@@ -36,8 +36,8 @@ extern char * optarg;
 char * buf0, * remote_ip, * dns_server, skip[100], *table, from_net[sizeof("from 192.168.123.123/255.255.255.255 ")];
 #define RULES_SIZE 4096
 struct rules {
-uint8_t hour;
-uint32_t ip;
+  uint8_t hour;
+  uint32_t ip;
 } rules[RULES_SIZE];
 bool v = false;
 bool route_clean = false;
@@ -89,12 +89,12 @@ void update_rule_list() {
     /*
 29010:	from all to 120.121.121.140 lookup 107
 29010:	from all to 120.121.121.141 lookup 107
-     */
+*/
     int rc = fscanf(dfp,"%d %99s %99s %99s %hhd.%hhd.%hhd.%hhd", &metric, skip, skip, skip, &ip[0], &ip[1], &ip[2], &ip[3]);
     fgets(skip, sizeof(skip), dfp);
     if(rc != 8) continue;
     rules[count].hour = metric % 100;
-    rules[count].ip = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) || ip[3];
+    rules[count].ip = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
     count ++;
   }
   fclose(dfp);
@@ -114,44 +114,44 @@ int main(int argc, char * argv[])
     switch(opt) {
       case 'c':
       case 'C':
-        route_clean = true;
-        break;
+	route_clean = true;
+	break;
       case 'h':
       case 'H': //帮助信息
-        h = true;
-        break;
+	h = true;
+	break;
       case 'v':
-        v = true;
-        break;
+	v = true;
+	break;
       case 'V':
-        printf("Version:%s\r\n",GIT_VER);
-        break;
+	printf("Version:%s\r\n",GIT_VER);
+	break;
       case 'd':
-        dns_server = optarg;
-        break;
+	dns_server = optarg;
+	break;
       case 'r':
-        remote_ip = optarg;
-        break;
+	remote_ip = optarg;
+	break;
       case 'n':
-        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3]) == 4) {
-          rules[count].ip = ipv4_u32(ip[0], ip[1], ip[2], 0); //跳过这些目标地址
-          if(rules[count].ip != 0) {
-            if(v) printf("skip ip:%d.%d.%d.0/24\r\n", ip[0], ip[1], ip[2]);
-            rules[count].hour = 25; //不会被清理
-            count++;
-          }
-        }
-        break;
+	if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3]) == 4) {
+	  rules[count].ip = ipv4_u32(ip[0], ip[1], ip[2], 0); //跳过这些目标地址
+	  if(rules[count].ip != 0) {
+	    if(v) printf("skip ip:%d.%d.%d.0/24\r\n", ip[0], ip[1], ip[2]);
+	    rules[count].hour = 25; //不会被清理
+	    count++;
+	  }
+	}
+	break;
       case 's':
-        if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4]) == 5 && ip[4] <= 32) {
-          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], ip[4]);
-        } else if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4], &ip[5], &ip[6], &ip[7]) == 8) {
-          snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d.%d.%d.%d",ip[0], ip[1], ip[2], ip[3], ip[4], ip[5], ip[6], ip[7]);
-        }
-        break;
+	if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4]) == 5 && ip[4] <= 32) {
+	  snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d",ip[0], ip[1], ip[2], ip[3], ip[4]);
+	} else if(sscanf(optarg, "%hhd.%hhd.%hhd.%hhd/%hhd.%hhd.%hhd.%hhd", &ip[0], &ip[1], &ip[2], &ip[3], &ip[4], &ip[5], &ip[6], &ip[7]) == 8) {
+	  snprintf(from_net, sizeof(from_net), "from %d.%d.%d.%d/%d.%d.%d.%d",ip[0], ip[1], ip[2], ip[3], ip[4], ip[5], ip[6], ip[7]);
+	}
+	break;
       case 't':
-        table = optarg;
-        break;
+	table = optarg;
+	break;
     }
   }
   if( h || table == NULL || (remote_ip == NULL && dns_server == NULL)) {
@@ -182,9 +182,9 @@ void log_scan() {
   uint32_t pid;
   int rc;
   while(1) {
-/*
-Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
-*/
+    /*
+       Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
+       */
 
     for( uint8_t i = 0; i < 10; i++) {
       rc = scanf("%99s",buf);
@@ -226,46 +226,65 @@ Sun Dec 26 15:29:33 2021 daemon.info dnsmasq[11997]:xxxx
 }
 
 void ip_rule(const char * dip) {
-  char buf[2048], dest[10];
+  char buf[2048];
   uint8_t ip[4];
-  uint32_t dip32;
   time_t time0;
   struct tm tm;
+
   if(sscanf(dip, "%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
   ip[3] = 0; //目标使用c段
   time(&time0);
   localtime_r(&time0, &tm);
   uint16_t count = 0;
+
+
   if(route_clean) { //命令行-c 需要删除
     for(count = 0; count < RULES_SIZE; count++) {
       if(rules[count].ip == 0) break;
-      if(rules[count].hour == ((tm.tm_hour + 1) % 24)) { //清理23小时前的rule
-        for(uint16_t i = count; i < RULES_SIZE; i ++) {
-          if(rules[i + 1].ip == 0) break;
-          rules[count] = rules[i + 1];
-        }
-        //删除路由
-	snprintf(buf,sizeof(buf), "ip rule del %s to %s/32", from_net, dest);
+      // 注意：这里的清理逻辑是清理 (当前小时+1)%24 的规则，即大约23小时前的规则
+      if(rules[count].hour == ((tm.tm_hour + 1) % 24) && rules[count].hour != 25) { // 同时确保不清理标记为25的跳过规则
+	uint32_t rule_ip = rules[count].ip;
+	// 检查 from_net 是否有效，避免在无效时执行 system 命令
+	if (from_net[0] == '\0') {
+	  fprintf(stderr, "Warning: Skipping rule deletion because from_net is not set.\n");
+	  continue; // 跳过此次删
+	}
+	snprintf(buf, sizeof(buf), "ip rule del %s to %d.%d.%d.0/24", from_net, (rule_ip >> 24) & 0xFF, (rule_ip >> 16) & 0xFF, (rule_ip >> 8) & 0xFF);
 	if(v)
-	  printf("%s\r\n",buf);
-	system(buf);
+	  printf("Deleting rule: %s\r\n", buf);
+	system(buf); // 执行删除命令
+	// 从 rules 数组中移除该条目 (将后续条目向前移动)
+	for(uint16_t i = count; i < RULES_SIZE - 1; i ++) {
+	  rules[i] = rules[i + 1]; // 结构体赋值
+	  if (rules[i].ip == 0) break; // 如果移动过来的是空条目，结束移动
+	}
+	// 清空最后一个可能重复的条目，或确保数组末尾是 0
+	if (RULES_SIZE > 0) { // 防止 RULES_SIZE 为 0
+	  // 需要找到实际的最后一个有效条目并将其后的条目清零
+	  uint16_t last_valid = 0;
+	  for(last_valid = 0; last_valid < RULES_SIZE; ++last_valid) {
+	    if (rules[last_valid].ip == 0) break;
+	  }
+	  if (last_valid < RULES_SIZE) {
+	    rules[last_valid].ip = 0; // 确保数组以 0 结尾
+	    rules[last_valid].hour = 0;
+	  }
+	}
+	count--; // 因为删除了一个元素，需要将 count 减 1 以便检查移动过来的新元素
       }
     }
   }
-  dip32 = (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
-  for(count = 0; count < RULES_SIZE; count++) {
-    if(rules[count].ip == 0) break;
-    if(rules[count].ip == dip32) return; //已经存在， 不需要添加
+  // 在添加规则前，确保 table 和 from_net 有效
+  if (table == NULL || from_net[0] == 0) {
+    fprintf(stderr, "FATAL: table or from_net is NULL/empty. Cannot add rule for %s.\n", dip);
+    return; // 提前返回，不添加规则
   }
-  for(uint16_t i = 0; i < sizeof(localnet) / sizeof(uint32_t); i = i + 2) {
-    if(localnet[i] <= dip32 && localnet[i + 1] >= dip32) return; /* 忽略内网地址 */
-  }
-  snprintf(buf,sizeof(buf),"ip rule add %s to %d.%d.%d.0/24 lookup %s pref %d", from_net, ip[0], ip[1], ip[2], table, 29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
+  snprintf(buf,sizeof(buf),"ip rule add %s to %d.%d.%d.0/24 lookup %s pref %d", from_net, ip[0], ip[1], ip[2], table, (uint16_t)29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
   if(v)
     printf("%s\r\n",buf);
   system(buf);
   if(count < RULES_SIZE && rules[count].ip == 0) {
     rules[count].hour = tm.tm_hour;
-    rules[count].ip = dip32;
+    rules[count].ip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
   }
 }
