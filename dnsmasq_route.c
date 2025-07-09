@@ -29,7 +29,7 @@ uint32_t localnet[]={ /* 内网地址表 */
   ipv4_u32(255, 255, 255, 255), ipv4_u32(255, 255, 255, 255), /* 255.255.255.255/32 */
 };
 void log_scan();
-void ip_rule(const char * dip);
+void ip_rule(const char * dips);
 #define PID_SIZE 20
 uint32_t pids[PID_SIZE];
 extern char * optarg;
@@ -220,14 +220,15 @@ void log_scan() {
   }
 }
 
-void ip_rule(const char * dip) {
+void ip_rule(const char * dips) {
   char buf[2048];
   uint8_t ip[4];
   time_t time0;
   struct tm tm;
 
-  if(sscanf(dip, "%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
+  if(sscanf(dips, "%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
   ip[3] = 0; //目标使用c段
+  uint32_t dip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8);
   time(&time0);
   localtime_r(&time0, &tm);
   uint16_t count = 0;
@@ -236,10 +237,12 @@ void ip_rule(const char * dip) {
       uint32_t rule_ip = rules[count].ip;
       if(rule_ip == 0)
         break;
-      if(((rule_ip >> 24) & 0xff) == ip[0]
-        && ((rule_ip >> 16) & 0xff) == ip[1]
-        && ((rule_ip >> 8) & 0xff) == ip[2])
+      if(rule_ip == dip) {
+        if(v)
+	  printf("跳过已经存在的规则 %s\n", dips);
+
         return; //已经存在，跳过
+      }
       // 注意：这里的清理逻辑是清理 (当前小时+1)%24 的规则，即大约23小时前的规则
       if(rules[count].hour == ((tm.tm_hour + 1) % 24) && rules[count].hour != 25) { // 同时确保不清理标记为25的跳过规则
 	// 检查 from_net 是否有效，避免在无效时执行 system 命令
@@ -247,7 +250,7 @@ void ip_rule(const char * dip) {
 	  fprintf(stderr, "Warning: Skipping rule deletion because from_net is not set.\n");
 	  continue; // 跳过此次删
 	}
-	snprintf(buf, sizeof(buf), "ip rule del %s to %d.%d.%d.0/24", from_net, (rule_ip >> 24) & 0xFF, (rule_ip >> 16) & 0xFF, (rule_ip >> 8) & 0xFF);
+	snprintf(buf, sizeof(buf), "ip rule del %s to %d.%d.%d.0/24", from_net, ip[0], ip[1], ip[2]);
 	if(v)
 	  printf("Deleting rule: %s\r\n", buf);
 	system(buf); // 执行删除命令
@@ -273,7 +276,8 @@ void ip_rule(const char * dip) {
     }
   // 在添加规则前，确保 table 和 from_net 有效
   if (table == NULL || from_net[0] == 0) {
-    fprintf(stderr, "FATAL: table or from_net is NULL/empty. Cannot add rule for %s.\n", dip);
+    if(v)
+      fprintf(stderr, "FATAL: table or from_net is NULL/empty. Cannot add rule for %s.\n", dips);
     return; // 提前返回，不添加规则
   }
   snprintf(buf,sizeof(buf),"ip rule add %s to %d.%d.%d.0/24 lookup %s pref %d", from_net, ip[0], ip[1], ip[2], table, (uint16_t)29000 + tm.tm_hour); //用metric 来区分每个小时添加的路由，方便定期清理
@@ -282,6 +286,6 @@ void ip_rule(const char * dip) {
   system(buf);
   if(count < RULES_SIZE && rules[count].ip == 0) {
     rules[count].hour = tm.tm_hour;
-    rules[count].ip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8);
+    rules[count].ip =  dip;
   }
 }
