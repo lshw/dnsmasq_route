@@ -40,7 +40,6 @@ struct rules {
   uint32_t ip;
 } rules[RULES_SIZE];
 bool v = false;
-bool route_clean = false;
 void add_key(const uint32_t pid) { //将转发到8.8.4.4的请求id 记录下来，
   uint32_t dat;
   for(uint8_t i = 0; i < PID_SIZE; i++) {
@@ -110,12 +109,8 @@ int main(int argc, char * argv[])
   uint8_t ip[8];
   uint8_t count = 0;
   memset(from_net, 0, sizeof(from_net));
-  while((opt = getopt(argc, argv, "cChHvVd:r:n:s:t:")) != -1) {
+  while((opt = getopt(argc, argv, "hHvVd:r:n:s:t:")) != -1) {
     switch(opt) {
-      case 'c':
-      case 'C':
-	route_clean = true;
-	break;
       case 'h':
       case 'H': //帮助信息
 	h = true;
@@ -238,7 +233,6 @@ void ip_rule(const char * dip) {
   uint16_t count = 0;
 
 
-  if(route_clean) { //命令行-c 需要删除
     for(count = 0; count < RULES_SIZE; count++) {
       if(rules[count].ip == 0) break;
       // 注意：这里的清理逻辑是清理 (当前小时+1)%24 的规则，即大约23小时前的规则
@@ -273,7 +267,6 @@ void ip_rule(const char * dip) {
 	count--; // 因为删除了一个元素，需要将 count 减 1 以便检查移动过来的新元素
       }
     }
-  }
   // 在添加规则前，确保 table 和 from_net 有效
   if (table == NULL || from_net[0] == 0) {
     fprintf(stderr, "FATAL: table or from_net is NULL/empty. Cannot add rule for %s.\n", dip);
