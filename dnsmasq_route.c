@@ -232,12 +232,16 @@ void ip_rule(const char * dip) {
   localtime_r(&time0, &tm);
   uint16_t count = 0;
 
-
     for(count = 0; count < RULES_SIZE; count++) {
-      if(rules[count].ip == 0) break;
+      uint32_t rule_ip = rules[count].ip;
+      if(rule_ip == 0)
+        break;
+      if(((rule_ip >> 24) & 0xff) == ip[0]
+        && ((rule_ip >> 16) & 0xff) == ip[1]
+        && ((rule_ip >> 8) & 0xff) == ip[2])
+        return; //已经存在，跳过
       // 注意：这里的清理逻辑是清理 (当前小时+1)%24 的规则，即大约23小时前的规则
       if(rules[count].hour == ((tm.tm_hour + 1) % 24) && rules[count].hour != 25) { // 同时确保不清理标记为25的跳过规则
-	uint32_t rule_ip = rules[count].ip;
 	// 检查 from_net 是否有效，避免在无效时执行 system 命令
 	if (from_net[0] == '\0') {
 	  fprintf(stderr, "Warning: Skipping rule deletion because from_net is not set.\n");
@@ -278,6 +282,6 @@ void ip_rule(const char * dip) {
   system(buf);
   if(count < RULES_SIZE && rules[count].ip == 0) {
     rules[count].hour = tm.tm_hour;
-    rules[count].ip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8) | ip[3];
+    rules[count].ip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8);
   }
 }
