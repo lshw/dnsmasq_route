@@ -229,6 +229,9 @@ void ip_rule(const char * dips) {
   if(sscanf(dips, "%hhd.%hhd.%hhd.%hhd",&ip[0],&ip[1],&ip[2],&ip[3]) != 4) return;
   ip[3] = 0; //目标使用c段
   uint32_t dip =  (uint32_t) (ip[0] << 24) | (ip[1] << 16) | (ip[2] << 8);
+  for(uint8_t i = 0; i < sizeof(localnet) / sizeof(uint32_t); i = i + 2) {
+    if(localnet[i] < dip && dip < localnet[i + 1]) return; //内网地址， 跳过
+  }
   time(&time0);
   localtime_r(&time0, &tm);
   uint16_t count = 0;
