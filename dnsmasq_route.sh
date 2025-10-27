@@ -4,7 +4,7 @@ remote_ip=$(uci get dnsmasq_route.config.remote_ip)
 dns_server=$(uci get dnsmasq_route.config.dns_server)
 ipv6_disable=$(uci get dnsmasq_route.config.ipv6_disable)
 localnet_only=$(uci get dnsmasq_route.config.localnet_only)
-table=$(uci get dnsmasq_route.config.table) //路由表编号
+table=$(uci get dnsmasq_route.config.table) #路由表编号
 
 if [ "a$localnet_only" == "a1" ] ; then
  sip=$(uci get network.lan.ipaddr)
