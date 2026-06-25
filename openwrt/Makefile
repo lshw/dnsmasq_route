@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.20251027
-PKG_RELEASE:=3
+PKG_VERSION:=0.20260625
+PKG_RELEASE:=4
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
@@ -36,10 +36,8 @@ define Package/dnsmasq_route
 endef
 
 define Package/dnsmasq_route/description
-         use dnsmasq dns forwared log, auto set route.
+         use dnsmasq dns ipset, auto set route.
 endef
-
-MAKE_FLAGS += cross
 
 define Build/Prepare
 	$(PKG_UNPACK)
@@ -49,28 +47,9 @@ define Build/Prepare
 	$(Build/Patch)
 endef
 
-define Package/dnsmasq_route/postinst
-#!/bin/sh
-log_file=$$( uci get system.cfg01e48a.log_file )
-if [ "a$${log_name}" = "a" ] ; then
-uci set system.cfg01e48a.log_file="/tmp/syslog"
-/etc/init.d/log restart
-fi
-
-uci set dhcp.cfg01411c.logqueries='1'
-uci set dhcp.cfg01411c.quietdhcp='1'
-uci commit
-
-/etc/init.d/dnsmasq_route enable
-/etc/init.d/dnsmasq_route start
-exit 0
-endef
-
 define Package/dnsmasq_route/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route $(1)/usr/bin/dnsmasq_route
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_log $(1)/usr/bin/dnsmasq_log
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dnsmasq_route.sh $(1)/usr/bin/dnsmasq_route.sh
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/etc/init.d/dnsmasq_route $(1)/etc/init.d/dnsmasq_route
 
 #luci界面
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
