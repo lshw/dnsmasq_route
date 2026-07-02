@@ -11,18 +11,9 @@ PKG_NAME:=dnsmasq_route
 PKG_VERSION:=2026.06.25
 PKG_RELEASE:=1
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
-PKG_SOURCE_VERSION:=v$(PKG_VERSION)
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
-PKG_MIRROR_HASH:=skip
-
 PKG_LICENSE:=GPL3
 PKG_LICENSE_FILES:=LICENSE
 PKG_MAINTAINER:=liu shiwei
-
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_BUILD_PARALLEL:=1
 
@@ -46,7 +37,7 @@ endef
 
 define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/etc/init.d/dnsmasq_route $(1)/etc/init.d/dnsmasq_route
+	$(INSTALL_BIN) $(CURDIR)/etc/init.d/dnsmasq_route $(1)/etc/init.d/dnsmasq_route
 
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
@@ -54,10 +45,10 @@ define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	$(INSTALL_DIR) $(1)/etc/config
 
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/files/dnsmasq_route.config $(1)/etc/config/dnsmasq_route
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/model/dnsmasq_route.lua $(1)/usr/lib/lua/luci/model/cbi/dnsmasq_route.lua
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/controller/dnsmasq_route.lua $(1)/usr/lib/lua/luci/controller/dnsmasq_route.lua
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/i18n/dnsmasq_route.zh-cn.po $(1)/usr/lib/lua/luci/i18n/dnsmasq_route.zh-cn.po
+	$(INSTALL_CONF) $(CURDIR)/files/dnsmasq_route.config $(1)/etc/config/dnsmasq_route
+	$(INSTALL_DATA) $(CURDIR)/files/luci/model/dnsmasq_route.lua $(1)/usr/lib/lua/luci/model/cbi/dnsmasq_route.lua
+	$(INSTALL_DATA) $(CURDIR)/files/luci/controller/dnsmasq_route.lua $(1)/usr/lib/lua/luci/controller/dnsmasq_route.lua
+	$(INSTALL_DATA) $(CURDIR)/files/luci/i18n/dnsmasq_route.zh-cn.po $(1)/usr/lib/lua/luci/i18n/dnsmasq_route.zh-cn.po
 endef
 
 $(eval $(call BuildPackage,dnsmasq_route))
