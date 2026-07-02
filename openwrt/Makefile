@@ -8,14 +8,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
-PKG_VERSION:=0.20260625
-PKG_RELEASE:=4
+PKG_VERSION:=2026.06.25
+PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/lshw/dnsmasq_route.git
-PKG_SOURCE_VERSION:=$(PKG_RELEASE)
+PKG_SOURCE_VERSION:=v$(PKG_VERSION)
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
+PKG_MIRROR_HASH:=skip
 
 PKG_LICENSE:=GPL3
 PKG_LICENSE_FILES:=LICENSE
@@ -33,36 +34,30 @@ define Package/dnsmasq_route
 	TITLE:=dnsmasq_route
 	URL:=https://github.com/lshw/dnsmasq_route
 	DEPENDS:= +luci-compat
+	PKGARCH:=all
 endef
 
 define Package/dnsmasq_route/description
-         use dnsmasq dns ipset, auto set route.
+	use dnsmasq dns ipset, auto set route.
 endef
 
-define Build/Prepare
-	$(PKG_UNPACK)
-	sed -i 's/cc_cross=.*/cc_cross=$(TARGET_CXX)/g' $(PKG_BUILD_DIR)/Makefile
-	sed -i 's/^UPDATE=.*/UPDATE=$(PKG_VERSION)/g' $(PKG_BUILD_DIR)/Makefile
-	sed -i 's/^GIT_VER=.*/GIT_VER=$(PKG_SOURCE_VERSION)/g' $(PKG_BUILD_DIR)/Makefile
-	$(Build/Patch)
+define Build/Compile
 endef
 
 define Package/dnsmasq_route/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/etc/init.d/dnsmasq_route $(1)/etc/init.d/dnsmasq_route
 
-#luci界面
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DIR) $(1)/etc/init.d
 
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/etc/init.d/dnsmasq_route $(1)/etc/init.d/dnsmasq_route
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/openwrt/files/dnsmasq_route.config $(1)/etc/config/dnsmasq_route
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/model/dnsmasq_route.lua $(1)/usr/lib/lua/luci/model/cbi/dnsmasq_route.lua
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/controller/dnsmasq_route.lua $(1)/usr/lib/lua/luci/controller/dnsmasq_route.lua
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/openwrt/files/luci/i18n/dnsmasq_route.zh-cn.po $(1)/usr/lib/lua/luci/i18n/dnsmasq_route.zh-cn.po
 endef
 
 $(eval $(call BuildPackage,dnsmasq_route))
