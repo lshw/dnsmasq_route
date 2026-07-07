@@ -3,6 +3,11 @@
 START=99
 
 DNSMASQ_ROUTE_CONF=/tmp/dnsmasq.d/dnsmasq_ipset.conf
+DNSMASQ_ROUTE_SET=gfw_list
+DNSMASQ_ROUTE_NFT_TABLE=dnsmasq_route
+DNSMASQ_ROUTE_NFT_CHAIN=prerouting
+DNSMASQ_ROUTE_IPTABLES_CHAIN=DNSMASQ_ROUTE
+DNSMASQ_ROUTE_RULE_PREF=29000
 
 detect_dnsmasq_set_backend()
 {
@@ -27,10 +32,136 @@ detect_dnsmasq_set_backend()
   echo ipset
 }
 
+netmask_to_prefix()
+{
+  local IFS=.
+  local octet prefix=0
+
+  for octet in $1
+  do
+    case "$octet" in
+      255) prefix=$((prefix + 8)) ;;
+      254) prefix=$((prefix + 7)) ;;
+      252) prefix=$((prefix + 6)) ;;
+      248) prefix=$((prefix + 5)) ;;
+      240) prefix=$((prefix + 4)) ;;
+      224) prefix=$((prefix + 3)) ;;
+      192) prefix=$((prefix + 2)) ;;
+      128) prefix=$((prefix + 1)) ;;
+      0) ;;
+      *) return 1 ;;
+    esac
+  done
+
+  echo "$prefix"
+}
+
+get_remote_dev()
+{
+  ip route get "$1" 2>/dev/null | awk '
+    {
+      for (i = 1; i <= NF; i++) {
+        if ($i == "dev") {
+          print $(i + 1)
+          exit
+        }
+      }
+    }
+  '
+}
+
+setup_policy_route()
+{
+  local table="$1"
+  local remote_ip="$2"
+  local remote_dev
+
+  remote_dev=$(get_remote_dev "$remote_ip")
+
+  ip rule del pref "$DNSMASQ_ROUTE_RULE_PREF" fwmark "$table" table "$table" 2>/dev/null
+  ip rule add pref "$DNSMASQ_ROUTE_RULE_PREF" fwmark "$table" table "$table"
+
+  if [ "a$remote_dev" = "a" ] ; then
+    ip route replace table "$table" default via "$remote_ip"
+  else
+    ip route replace table "$table" default via "$remote_ip" dev "$remote_dev"
+  fi
+}
+
+cleanup_policy_route()
+{
+  local table="$1"
+
+  ip rule del pref "$DNSMASQ_ROUTE_RULE_PREF" fwmark "$table" table "$table" 2>/dev/null
+}
+
+setup_ipset_rules()
+{
+  local table="$1"
+  local from_localnet_only="$2"
+
+  ipset -exist create "$DNSMASQ_ROUTE_SET" hash:ip family inet
+
+  iptables -t mangle -N "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
+  iptables -t mangle -F "$DNSMASQ_ROUTE_IPTABLES_CHAIN"
+  iptables -t mangle -C PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null || \
+    iptables -t mangle -A PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN"
+
+  if [ "a$from_localnet_only" = "a" ] ; then
+    iptables -t mangle -A "$DNSMASQ_ROUTE_IPTABLES_CHAIN" -m set --match-set "$DNSMASQ_ROUTE_SET" dst \
+      -j MARK --set-mark "$table"
+  else
+    iptables -t mangle -A "$DNSMASQ_ROUTE_IPTABLES_CHAIN" $from_localnet_only \
+      -m set --match-set "$DNSMASQ_ROUTE_SET" dst -j MARK --set-mark "$table"
+  fi
+}
+
+cleanup_ipset_rules()
+{
+  iptables -t mangle -D PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
+  iptables -t mangle -F "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
+  iptables -t mangle -X "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
+  ipset destroy "$DNSMASQ_ROUTE_SET" 2>/dev/null
+}
+
+setup_nftset_rules()
+{
+  local table="$1"
+  local localnet_cidr="$2"
+  local rule
+
+  nft delete table ip "$DNSMASQ_ROUTE_NFT_TABLE" 2>/dev/null
+  nft add table ip "$DNSMASQ_ROUTE_NFT_TABLE"
+  nft "add set ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_SET { type ipv4_addr; }"
+  nft "add chain ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_NFT_CHAIN { type filter hook prerouting priority mangle; policy accept; }"
+
+  rule="add rule ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_NFT_CHAIN ip daddr @$DNSMASQ_ROUTE_SET"
+  if [ "a$localnet_cidr" != "a" ] ; then
+    rule="$rule ip saddr $localnet_cidr"
+  fi
+  rule="$rule meta mark set $table"
+  nft "$rule"
+}
+
+cleanup_nftset_rules()
+{
+  nft delete table ip "$DNSMASQ_ROUTE_NFT_TABLE" 2>/dev/null
+}
+
+cleanup_runtime()
+{
+  local table="$1"
+
+  rm -f "$DNSMASQ_ROUTE_CONF"
+  cleanup_nftset_rules
+  cleanup_ipset_rules
+  cleanup_policy_route "$table"
+}
+
 start()
 {
   local remote_ip dns_server localnet_only table set_backend
-  local sip netmask
+  local sip netmask from_localnet_only localnet_cidr
 
   remote_ip=$(uci get dnsmasq_route.config.remote_ip)
   dns_server=$(uci get dnsmasq_route.config.dns_server)
@@ -41,6 +172,8 @@ start()
   if [ "a$localnet_only" = "a1" ] ; then
     sip=$(uci get network.lan.ipaddr)
     netmask=$(uci get network.lan.netmask)
+    from_localnet_only="-s $sip/$netmask"
+    localnet_cidr="$sip/$(netmask_to_prefix "$netmask")"
   fi
 
   if [ "a$table" = "a" ] ; then
@@ -50,15 +183,25 @@ start()
   if ! [ -e /etc/dnsmasq_route.ini ] ; then
     echo github.com > /etc/dnsmasq_route.ini
   fi
+
+  cleanup_runtime "$table"
+
+  if [ "$set_backend" = "nftset" ] ; then
+    setup_nftset_rules "$table" "$localnet_cidr"
+  else
+    setup_ipset_rules "$table" "$from_localnet_only"
+  fi
+
+  setup_policy_route "$table" "$remote_ip"
   echo "#auto gen from /etc/dnsmasq_route.ini" > "$DNSMASQ_ROUTE_CONF"
   grep -v -e '^#' -e '^$' /etc/dnsmasq_route.ini | \
   while read hostname note
   do
     echo "server=/$hostname/$dns_server" >> "$DNSMASQ_ROUTE_CONF"
     if [ "$set_backend" = "nftset" ] ; then
-      echo "nftset=/$hostname/4#ip#dnsmasq_route#gfw_list" >> "$DNSMASQ_ROUTE_CONF"
+      echo "nftset=/$hostname/4#ip#$DNSMASQ_ROUTE_NFT_TABLE#$DNSMASQ_ROUTE_SET" >> "$DNSMASQ_ROUTE_CONF"
     else
-      echo "ipset=/$hostname/gfw_list" >> "$DNSMASQ_ROUTE_CONF"
+      echo "ipset=/$hostname/$DNSMASQ_ROUTE_SET" >> "$DNSMASQ_ROUTE_CONF"
     fi
   done
 
@@ -74,7 +217,7 @@ stop(){
     table=107
   fi
 
-  rm -f "$DNSMASQ_ROUTE_CONF"
+  cleanup_runtime "$table"
   echo "dnsmasq_route has stopped."
   /etc/init.d/dnsmasq restart
 }
