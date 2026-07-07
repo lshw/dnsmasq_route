@@ -8,6 +8,8 @@ DNSMASQ_ROUTE_NFT_TABLE=dnsmasq_route
 DNSMASQ_ROUTE_NFT_CHAIN=prerouting
 DNSMASQ_ROUTE_IPTABLES_CHAIN=DNSMASQ_ROUTE
 DNSMASQ_ROUTE_RULE_PREF=29000
+# nftset 条目固定保留 24 小时，重复解析不会刷新剩余过期时间。
+DNSMASQ_ROUTE_NFT_TIMEOUT_DEFAULT=24h
 
 detect_dnsmasq_set_backend()
 {
@@ -133,7 +135,7 @@ setup_nftset_rules()
 
   nft delete table ip "$DNSMASQ_ROUTE_NFT_TABLE" 2>/dev/null
   nft add table ip "$DNSMASQ_ROUTE_NFT_TABLE"
-  nft "add set ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_SET { type ipv4_addr; }"
+  nft "add set ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_SET { type ipv4_addr; flags timeout; timeout $DNSMASQ_ROUTE_NFT_TIMEOUT_DEFAULT; }"
   nft "add chain ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_NFT_CHAIN { type filter hook prerouting priority mangle; policy accept; }"
 
   rule="add rule ip $DNSMASQ_ROUTE_NFT_TABLE $DNSMASQ_ROUTE_NFT_CHAIN ip daddr @$DNSMASQ_ROUTE_SET"
