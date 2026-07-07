@@ -90,9 +90,10 @@ setup_policy_route()
 
 cleanup_policy_route()
 {
-  local table="$1"
-
-  ip rule del pref "$DNSMASQ_ROUTE_RULE_PREF" fwmark "$table" table "$table" 2>/dev/null
+  while ip rule del pref "$DNSMASQ_ROUTE_RULE_PREF" 2>/dev/null
+  do
+    :
+  done
 }
 
 setup_ipset_rules()
