@@ -2,45 +2,79 @@
 
 START=99
 
+DNSMASQ_ROUTE_CONF=/tmp/dnsmasq.d/dnsmasq_ipset.conf
+
+detect_dnsmasq_set_backend()
+{
+  local release major
+
+  if [ -r /etc/openwrt_release ] ; then
+    . /etc/openwrt_release
+    release="${DISTRIB_RELEASE%%-*}"
+    major="${release%%.*}"
+    case "$major" in
+      ''|*[!0-9]*)
+        ;;
+      *)
+        if [ "$major" -ge 22 ] ; then
+          echo nftset
+          return
+        fi
+        ;;
+    esac
+  fi
+
+  echo ipset
+}
+
 start()
 {
+  local remote_ip dns_server localnet_only table set_backend
+  local sip netmask
 
   remote_ip=$(uci get dnsmasq_route.config.remote_ip)
   dns_server=$(uci get dnsmasq_route.config.dns_server)
   localnet_only=$(uci get dnsmasq_route.config.localnet_only)
   table=$(uci get dnsmasq_route.config.table) #路由表编号
+  set_backend=$(detect_dnsmasq_set_backend)
 
-  if [ "a$localnet_only" == "a1" ] ; then
+  if [ "a$localnet_only" = "a1" ] ; then
     sip=$(uci get network.lan.ipaddr)
     netmask=$(uci get network.lan.netmask)
-    from_localnet_only="-s $sip/$netmask"
   fi
 
-  if [ "a$table" == "a" ] ; then
+  if [ "a$table" = "a" ] ; then
     table=107
   fi
 
   if ! [ -e /etc/dnsmasq_route.ini ] ; then
     echo github.com > /etc/dnsmasq_route.ini
   fi
-  echo "#auto gen from /etc/dnsmasq_route.ini" > /tmp/dnsmasq.d/dnsmasq_ipset.conf
-  cat /etc/dnsmasq_route.ini |grep -v  -e ^# -e ^$ |\
+  echo "#auto gen from /etc/dnsmasq_route.ini" > "$DNSMASQ_ROUTE_CONF"
+  grep -v -e '^#' -e '^$' /etc/dnsmasq_route.ini | \
   while read hostname note
   do
-    echo "server=/$hostname/$dns_server" >> /tmp/dnsmasq.d/dnsmasq_ipset.conf
-    echo "ipset=/$hostname/gfw_list" >> /tmp/dnsmasq.d/dnsmasq_ipset.conf
+    echo "server=/$hostname/$dns_server" >> "$DNSMASQ_ROUTE_CONF"
+    if [ "$set_backend" = "nftset" ] ; then
+      echo "nftset=/$hostname/4#ip#dnsmasq_route#gfw_list" >> "$DNSMASQ_ROUTE_CONF"
+    else
+      echo "ipset=/$hostname/gfw_list" >> "$DNSMASQ_ROUTE_CONF"
+    fi
   done
+
   /etc/init.d/dnsmasq restart
   echo "dnsmasq_route has started."
 }
 
 stop(){
-   #清理分流路由
-   rm /tmp/dnsmasq.d/dnsmasq_ipset.conf
-   ip ru list |grep ^290 |while read prefix from sip to dip lookup
-   do
-    ip rule del from $sip to $dip
-  done
+  local table
+
+  table=$(uci get dnsmasq_route.config.table)
+  if [ "a$table" = "a" ] ; then
+    table=107
+  fi
+
+  rm -f "$DNSMASQ_ROUTE_CONF"
   echo "dnsmasq_route has stopped."
   /etc/init.d/dnsmasq restart
 }
@@ -48,4 +82,3 @@ stop(){
 restart(){
        start
 }
-
