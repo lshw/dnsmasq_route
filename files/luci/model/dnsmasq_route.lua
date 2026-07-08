@@ -1,5 +1,9 @@
 local m, s
 
+local function restart_service()
+	luci.sys.call("/etc/init.d/dnsmasq_route restart >/dev/null")
+end
+
 local running=(luci.sys.call("pidof dnsmasq_route > /dev/null") == 0)
 if running then
 	m = Map("dnsmasq_route", translate("dnsmasq_route config"), translate("域名分流运行中"))
@@ -10,6 +14,10 @@ end
 s = m:section(TypedSection, "dnsmasq_route", "域名分流")
 s.addremove = false
 s.anonymous = true
+
+function m.on_after_commit(self)
+	restart_service()
+end
 
 enable = s:option(Flag, "enabled", "启用")
 
@@ -31,12 +39,7 @@ end
 function config.write(self, section, value)
 	value = value:gsub("\r\n?", "\n")
 	nixio.fs.writefile("/etc/dnsmasq_route.ini", value)
-        luci.sys.call("/etc/init.d/dnsmasq_route start >/dev/null")
-end
-
-function localnet.write(self, section, value)
-        Flag.write(self, section, value)
-        luci.sys.call("/etc/init.d/dnsmasq_route start >/dev/null")
+	restart_service()
 end
 
 return m
