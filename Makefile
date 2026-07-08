@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq_route
 PKG_VERSION:=2026.07.08
-PKG_RELEASE:=4
+PKG_RELEASE:=5
 
 PKG_LICENSE:=GPL3
 PKG_LICENSE_FILES:=LICENSE
@@ -24,12 +24,12 @@ define Package/dnsmasq_route
 	CATEGORY:=Network
 	TITLE:=dnsmasq_route
 	URL:=https://github.com/lshw/dnsmasq_route
-	DEPENDS:= +luci-compat
+	DEPENDS:= +luci-compat +nftables +dnsmasq-full
 	PKGARCH:=all
 endef
 
 define Package/dnsmasq_route/description
-	use dnsmasq dns ipset, auto set route.
+	use dnsmasq nftset, auto set route.
 endef
 
 define Build/Compile
