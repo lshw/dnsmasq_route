@@ -2,37 +2,13 @@
 
 START=99
 
-DNSMASQ_ROUTE_CONF=/tmp/dnsmasq.d/dnsmasq_ipset.conf
+DNSMASQ_ROUTE_CONF=/tmp/dnsmasq.d/dnsmasq_nftset.conf
 DNSMASQ_ROUTE_SET=gfw_list
 DNSMASQ_ROUTE_NFT_TABLE=dnsmasq_route
 DNSMASQ_ROUTE_NFT_CHAIN=prerouting
-DNSMASQ_ROUTE_IPTABLES_CHAIN=DNSMASQ_ROUTE
 DNSMASQ_ROUTE_RULE_PREF=29000
 # nftset 条目固定保留 24 小时，重复解析不会刷新剩余过期时间。
 DNSMASQ_ROUTE_NFT_TIMEOUT_DEFAULT=24h
-
-detect_dnsmasq_set_backend()
-{
-  local release major
-
-  if [ -r /etc/openwrt_release ] ; then
-    . /etc/openwrt_release
-    release="${DISTRIB_RELEASE%%-*}"
-    major="${release%%.*}"
-    case "$major" in
-      ''|*[!0-9]*)
-        ;;
-      *)
-        if [ "$major" -ge 22 ] ; then
-          echo nftset
-          return
-        fi
-        ;;
-    esac
-  fi
-
-  echo ipset
-}
 
 netmask_to_prefix()
 {
@@ -98,35 +74,6 @@ cleanup_policy_route()
   done
 }
 
-setup_ipset_rules()
-{
-  local table="$1"
-  local from_localnet_only="$2"
-
-  ipset -exist create "$DNSMASQ_ROUTE_SET" hash:ip family inet
-
-  iptables -t mangle -N "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
-  iptables -t mangle -F "$DNSMASQ_ROUTE_IPTABLES_CHAIN"
-  iptables -t mangle -C PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null || \
-    iptables -t mangle -A PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN"
-
-  if [ "a$from_localnet_only" = "a" ] ; then
-    iptables -t mangle -A "$DNSMASQ_ROUTE_IPTABLES_CHAIN" -m set --match-set "$DNSMASQ_ROUTE_SET" dst \
-      -j MARK --set-mark "$table"
-  else
-    iptables -t mangle -A "$DNSMASQ_ROUTE_IPTABLES_CHAIN" $from_localnet_only \
-      -m set --match-set "$DNSMASQ_ROUTE_SET" dst -j MARK --set-mark "$table"
-  fi
-}
-
-cleanup_ipset_rules()
-{
-  iptables -t mangle -D PREROUTING -j "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
-  iptables -t mangle -F "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
-  iptables -t mangle -X "$DNSMASQ_ROUTE_IPTABLES_CHAIN" 2>/dev/null
-  ipset destroy "$DNSMASQ_ROUTE_SET" 2>/dev/null
-}
-
 setup_nftset_rules()
 {
   local table="$1"
@@ -157,25 +104,30 @@ cleanup_runtime()
 
   rm -f "$DNSMASQ_ROUTE_CONF"
   cleanup_nftset_rules
-  cleanup_ipset_rules
   cleanup_policy_route "$table"
+}
+
+check_runtime_support()
+{
+  if ! command -v nft >/dev/null 2>&1 ; then
+    echo "dnsmasq_route requires nftables and only supports OpenWrt 24+." >&2
+    return 1
+  fi
 }
 
 start()
 {
-  local remote_ip dns_server localnet_only table set_backend
-  local sip netmask from_localnet_only localnet_cidr
+  local remote_ip dns_server localnet_only table
+  local sip netmask localnet_cidr
 
-  remote_ip=$(uci get dnsmasq_route.config.remote_ip)
-  dns_server=$(uci get dnsmasq_route.config.dns_server)
-  localnet_only=$(uci get dnsmasq_route.config.localnet_only)
-  table=$(uci get dnsmasq_route.config.table) #路由表编号
-  set_backend=$(detect_dnsmasq_set_backend)
+  remote_ip=$(uci -q get dnsmasq_route.config.remote_ip)
+  dns_server=$(uci -q get dnsmasq_route.config.dns_server)
+  localnet_only=$(uci -q get dnsmasq_route.config.localnet_only)
+  table=$(uci -q get dnsmasq_route.config.table) #路由表编号
 
   if [ "a$localnet_only" = "a1" ] ; then
-    sip=$(uci get network.lan.ipaddr)
-    netmask=$(uci get network.lan.netmask)
-    from_localnet_only="-s $sip/$netmask"
+    sip=$(uci -q get network.lan.ipaddr)
+    netmask=$(uci -q get network.lan.netmask)
     localnet_cidr="$sip/$(netmask_to_prefix "$netmask")"
   fi
 
@@ -183,17 +135,15 @@ start()
     table=107
   fi
 
+  check_runtime_support || return 1
+
   if ! [ -e /etc/dnsmasq_route.ini ] ; then
     echo github.com > /etc/dnsmasq_route.ini
   fi
 
   cleanup_runtime "$table"
 
-  if [ "$set_backend" = "nftset" ] ; then
-    setup_nftset_rules "$table" "$localnet_cidr"
-  else
-    setup_ipset_rules "$table" "$from_localnet_only"
-  fi
+  setup_nftset_rules "$table" "$localnet_cidr"
 
   setup_policy_route "$table" "$remote_ip"
   echo "#auto gen from /etc/dnsmasq_route.ini" > "$DNSMASQ_ROUTE_CONF"
@@ -201,11 +151,7 @@ start()
   while read hostname note
   do
     echo "server=/$hostname/$dns_server" >> "$DNSMASQ_ROUTE_CONF"
-    if [ "$set_backend" = "nftset" ] ; then
-      echo "nftset=/$hostname/4#ip#$DNSMASQ_ROUTE_NFT_TABLE#$DNSMASQ_ROUTE_SET" >> "$DNSMASQ_ROUTE_CONF"
-    else
-      echo "ipset=/$hostname/$DNSMASQ_ROUTE_SET" >> "$DNSMASQ_ROUTE_CONF"
-    fi
+    echo "nftset=/$hostname/4#ip#$DNSMASQ_ROUTE_NFT_TABLE#$DNSMASQ_ROUTE_SET" >> "$DNSMASQ_ROUTE_CONF"
   done
 
   /etc/init.d/dnsmasq restart
@@ -215,7 +161,7 @@ start()
 stop(){
   local table
 
-  table=$(uci get dnsmasq_route.config.table)
+  table=$(uci -q get dnsmasq_route.config.table)
   if [ "a$table" = "a" ] ; then
     table=107
   fi
